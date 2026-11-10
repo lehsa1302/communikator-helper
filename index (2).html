@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Коммуникатор-помощник</title>
+<style>
+:root {
+  --bg: #eef3f6; --panel: #fff; --primary: #2c6e8f; --text: #16262e;
+  --muted: #6d8792; --border: #c9d9e0; --card-bg: #fff; --card-text: #16262e;
+  --chip-bg: #2c6e8f; --chip-text: #fff; --shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+body.contrast {
+  --bg:#000; --panel:#0d0d0d; --primary:#ffe500; --text:#fff; --muted:#ccc;
+  --border:#ffe500; --card-bg:#000; --card-text:#ffe500; --chip-bg:#ffe500;
+  --chip-text:#000; --shadow: 0 0 0 2px #ffe500;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; }
+body {
+  font-family: "Segoe UI", -apple-system, Roboto, Arial, sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100vh;
+  user-select: none; -webkit-tap-highlight-color: transparent;
+}
+#app { display: flex; flex-direction: column; min-height: 100vh; }
+
+header {
+  background: var(--primary); color: var(--chip-text);
+  padding: 0.6rem 0.9rem; display: flex; align-items: center;
+  justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+header h1 { font-size: 1.15rem; font-weight: 600; white-space: nowrap; }
+.header-group { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; }
+.lang-switch { display: flex; gap: 0.2rem; }
+.lang-switch button {
+  background: rgba(255,255,255,0.18); color: inherit; border: none;
+  padding: 0.4rem 0.55rem; border-radius: 0.45rem; font-size: 0.9rem;
+  cursor: pointer; font-weight: 600; line-height: 1;
+}
+.lang-switch button.active { background: rgba(255,255,255,0.45); }
+.icon-btn {
+  background: rgba(255,255,255,0.18); color: inherit; border: none;
+  padding: 0.45rem 0.7rem; border-radius: 0.5rem; font-size: 1rem;
+  cursor: pointer; font-weight: 600; line-height: 1; display: flex; align-items: center; gap: 0.3rem;
+}
+.icon-btn:active { opacity: 0.7; }
+
+/* Панель быстрых фраз */
+#quickPhrasesWrapper {
+  display: flex; align-items: center; background: var(--panel);
+  border-bottom: 1px solid var(--border); padding-right: 0.6rem;
+}
+#quickPhrasesBar {
+  display: flex; gap: 0.4rem; padding: 0.5rem 0.9rem;
+  overflow-x: auto; flex: 1; scrollbar-width: none;
+}
+#quickPhrasesBar::-webkit-scrollbar { display: none; }
+.qp-btn {
+  flex-shrink: 0; background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); padding: 0.4rem 0.8rem; border-radius: 1rem;
+  font-size: 0.9rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.qp-btn:active { background: var(--primary); color: var(--chip-text); }
+.qp-edit-btn {
+  background: var(--primary); color: var(--chip-text); border: none;
+  border-radius: 50%; width: 2.2rem; height: 2.2rem; font-size: 1rem;
+  cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.qp-edit-btn:active { opacity: 0.8; }
+
+#sentenceArea {
+  background: var(--panel); border-bottom: 2px solid var(--border);
+  padding: 0.6rem 0.9rem; box-shadow: inset 0 -2px 5px rgba(0,0,0,0.03);
+}
+.sentence-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
+.sentence-title { font-size: 0.85rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
+#phraseChips {
+  display: flex; flex-wrap: wrap; gap: 0.4rem;
+  min-height: 3rem; align-items: center; padding: 0.3rem;
+  background: var(--bg); border-radius: 0.6rem; border: 1px dashed var(--border);
+}
+#phraseHint { color: var(--muted); font-size: 0.9rem; font-style: italic; padding-left: 0.5rem; }
+.chip {
+  background: var(--chip-bg); color: var(--chip-text); padding: 0.45rem 0.9rem;
+  border-radius: 1.2rem; font-size: 1.05rem; cursor: pointer; font-weight: 500; border: none;
+  display: flex; align-items: center; gap: 0.4rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.chip:active { opacity: 0.7; }
+.chip::after { content: '×'; font-size: 1.2rem; line-height: 1; opacity: 0.7; }
+.phrase-controls { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; margin-top: 0.5rem; }
+
+.ctrl-btn {
+  padding: 0.55rem 0.85rem; border-radius: 0.55rem; border: 2px solid var(--border);
+  background: var(--panel); color: var(--text); font-size: 0.92rem;
+  cursor: pointer; font-weight: 600; font-family: inherit; white-space: nowrap;
+}
+.ctrl-btn.primary { background: var(--primary); color: var(--chip-text); border-color: var(--primary); }
+.ctrl-btn:active { opacity: 0.75; }
+
+nav#categories {
+  display: flex; gap: 0.45rem; padding: 0.6rem 0.9rem;
+  overflow-x: auto; flex-wrap: nowrap; scrollbar-width: thin;
+}
+.catBtn {
+  flex-shrink: 0; background: var(--panel); border: 2px solid var(--border);
+  color: var(--text); padding: 0.5rem 0.95rem; border-radius: 1.3rem;
+  font-size: 0.92rem; cursor: pointer; font-weight: 600; font-family: inherit;
+  white-space: nowrap;
+}
+.catBtn.active { background: var(--primary); color: var(--chip-text); border-color: var(--primary); }
+
+main { flex: 1; padding: 0 0.9rem 1rem; }
+#grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.65rem;
+}
+.card {
+  background: var(--card-bg); color: var(--card-text);
+  border: 2px solid transparent; border-radius: 0.9rem; padding: 0.8rem 0.4rem;
+  text-align: center; cursor: pointer; box-shadow: var(--shadow);
+  transition: transform 0.07s; position: relative; min-height: 6rem;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.card:active { transform: scale(0.95); border-color: var(--primary); }
+.card .emoji { font-size: 2.6rem; display: block; line-height: 1.1; }
+.card .photo {
+  width: 100%; max-height: 5rem; object-fit: contain;
+  display: block; border-radius: 0.4rem; margin: 0 auto;
+}
+.card .label {
+  display: block; font-size: 0.92rem; margin-top: 0.35rem;
+  font-weight: 600; line-height: 1.15; word-break: break-word;
+}
+.card .badge {
+  position: absolute; top: 0.3rem; right: 0.35rem; font-size: 0.85rem;
+  background: rgba(0,0,0,0.55); color: #fff; padding: 0.1rem 0.3rem;
+  border-radius: 0.3rem; line-height: 1;
+}
+.card.addCard {
+  border: 2px dashed var(--border); background: transparent;
+  color: var(--muted); font-size: 0.9rem;
+}
+.card.addCard .emoji { font-size: 2rem; color: var(--muted); }
+
+#zoomControls {
+  position: fixed; right: 0.7rem; bottom: 0.7rem;
+  display: flex; flex-direction: column; gap: 0.35rem; z-index: 50;
+}
+#zoomControls button {
+  width: 2.9rem; height: 2.9rem; border-radius: 50%; border: none;
+  background: var(--primary); color: var(--chip-text); font-size: 1.15rem;
+  font-weight: 700; cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,0.28);
+  display: flex; align-items: center; justify-content: center;
+}
+#zoomControls button:active { opacity: 0.75; }
+#zoomPct {
+  background: var(--panel); color: var(--text); border: 2px solid var(--border);
+  padding: 0.25rem 0.3rem; border-radius: 1rem; font-size: 0.7rem;
+  text-align: center; font-weight: 700;
+}
+
+#typingOverlay {
+  position: fixed; inset: 0; background: var(--bg); z-index: 300;
+  display: flex; flex-direction: column; padding: 1rem;
+}
+#typingOverlay.hidden { display: none; }
+.typing-header { display: flex; justify-content: space-between; margin-bottom: 1rem; }
+#typingArea {
+  flex: 1; width: 100%; font-size: 2rem; padding: 1rem;
+  border: 3px solid var(--border); border-radius: 1rem;
+  background: var(--panel); color: var(--text); font-family: inherit;
+  resize: none; outline: none; line-height: 1.4;
+}
+#typingArea:focus { border-color: var(--primary); }
+.typing-actions { display: flex; gap: 1rem; margin-top: 1rem; }
+.typing-actions button {
+  flex: 1; padding: 1.2rem; font-size: 1.2rem; border-radius: 1rem;
+  border: none; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+}
+.typing-actions .speak-btn { background: var(--primary); color: var(--chip-text); }
+.typing-actions .add-btn { background: var(--panel); color: var(--text); border: 2px solid var(--border); }
+.typing-actions button:active { opacity: 0.8; }
+
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 100; }
+.modal.hidden { display: none; }
+.modal-content {
+  background: var(--panel); color: var(--text); border-radius: 0.9rem;
+  padding: 1.2rem; width: 100%; max-width: 26rem; max-height: 92vh; overflow-y: auto;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+}
+.modal-content h2 { font-size: 1.1rem; margin-bottom: 0.9rem; }
+.setting-row { margin-bottom: 0.9rem; }
+.setting-row label { display: block; font-weight: 600; margin-bottom: 0.35rem; font-size: 0.92rem; }
+.setting-row .buttons { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.setting-row .buttons button {
+  flex: 1; min-width: 4rem; padding: 0.55rem; border: 2px solid var(--border);
+  background: var(--panel); color: var(--text); border-radius: 0.55rem;
+  font-size: 0.92rem; cursor: pointer; font-weight: 600;
+}
+.setting-row .buttons button.on { background: var(--primary); color: var(--chip-text); border-color: var(--primary); }
+.setting-row input[type=range] { width: 100%; }
+.setting-row .toggle {
+  padding: 0.55rem 0.9rem; border: 2px solid var(--border); background: var(--panel);
+  color: var(--text); border-radius: 0.55rem; font-size: 0.92rem;
+  cursor: pointer; font-weight: 600; width: 100%;
+}
+.setting-row .toggle.on { background: var(--primary); color: var(--chip-text); border-color: var(--primary); }
+.modal-close {
+  width: 100%; padding: 0.7rem; background: var(--primary); color: var(--chip-text);
+  border: none; border-radius: 0.55rem; font-size: 1rem; font-weight: 600;
+  cursor: pointer; margin-top: 0.4rem;
+}
+.modal-content input[type=text] {
+  width: 100%; padding: 0.55rem 0.75rem; border: 2px solid var(--border);
+  border-radius: 0.55rem; font-size: 1rem; background: var(--panel);
+  color: var(--text); font-family: inherit;
+}
+.modal-content input[type=file] {
+  width: 100%; padding: 0.5rem; border: 2px dashed var(--border);
+  border-radius: 0.55rem; font-size: 0.85rem; background: var(--panel); color: var(--text);
+}
+
+.profile-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.6rem 0.8rem; border: 2px solid var(--border);
+  border-radius: 0.55rem; margin-bottom: 0.5rem; cursor: pointer;
+}
+.profile-item.active { border-color: var(--primary); background: rgba(44,110,143,0.05); }
+.profile-item .p-name { font-weight: 600; font-size: 1rem; }
+.profile-item .p-del { color: #c0392b; font-size: 1.2rem; padding: 0.2rem 0.5rem; cursor: pointer; background: none; border: none; }
+
+#historyList { list-style: none; max-height: 55vh; overflow-y: auto; margin-bottom: 0.7rem; border: 1px solid var(--border); border-radius: 0.55rem; }
+#historyList li { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; gap: 0.5rem; align-items: center; font-size: 0.92rem; }
+#historyList li:last-child { border-bottom: none; }
+#historyList .hist-text { flex: 1; word-break: break-word; cursor: pointer; }
+#historyList .hist-time { font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+#historyEmpty { padding: 1rem; text-align: center; color: var(--muted); font-style: italic; }
+
+/* Список быстрых фраз в модальном окне */
+.qp-list-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.5rem 0.8rem; border: 1px solid var(--border);
+  border-radius: 0.55rem; margin-bottom: 0.4rem; background: var(--bg);
+}
+.qp-list-item span { font-size: 0.95rem; font-weight: 500; }
+.qp-list-item button { color: #c0392b; background: none; border: none; font-size: 1.2rem; cursor: pointer; }
+
+.record-btn {
+  width: 100%; padding: 0.7rem; border: 2px solid var(--border);
+  background: var(--panel); color: var(--text); border-radius: 0.55rem;
+  font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-bottom: 0.45rem;
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+}
+.record-btn.recording { background: #c0392b; color: #fff; border-color: #c0392b; }
+.record-btn:active { opacity: 0.75; }
+.record-note { font-size: 0.82rem; color: var(--muted); line-height: 1.4; margin-bottom: 0.7rem; padding: 0.5rem; background: rgba(0,0,0,0.04); border-radius: 0.45rem; }
+
+#largeOverlay {
+  position: fixed; inset: 0; background: #000; color: #fff;
+  display: flex; flex-direction: column; z-index: 400;
+  padding: 2rem; gap: 1rem; align-items: center; justify-content: center;
+}
+#largeOverlay.hidden { display: none; }
+#largePhrase {
+  font-size: clamp(2rem, 9vw, 7rem); font-weight: 700; text-align: center;
+  line-height: 1.15; flex: 1; display: flex; align-items: center;
+  justify-content: center; word-break: break-word;
+}
+.large-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+.large-actions button {
+  padding: 1rem 1.8rem; border-radius: 0.8rem; border: 3px solid #fff;
+  background: #222; color: #fff; font-size: 1.1rem; cursor: pointer; font-weight: 700;
+}
+.large-actions button.speak { background: #ffe500; color: #000; border-color: #ffe500; }
+.large-actions button:active { opacity: 0.8; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <h1 id="appTitle">🗣️ Коммуникатор-помощник</h1>
+    <div class="header-group">
+      <div class="lang-switch">
+        <button data-lang="ru" title="Русский">🇷🇺 RU</button>
+        <button data-lang="en" title="English">🇬🇧 EN</button>
+      </div>
+      <button class="icon-btn" id="profileBtn" title="Профили">👤 <span id="currentProfileName">Основной</span></button>
+      <button class="icon-btn" id="typingBtn" title="Набрать текст">⌨️</button>
+      <button class="icon-btn" id="historyBtn" title="История">🕐</button>
+      <button class="icon-btn" id="settingsBtn" title="Настройки">⚙️</button>
+      <button class="icon-btn" id="clearBtn" title="Очистить">🗑️</button>
+    </div>
+  </header>
+
+  <!-- Быстрые фразы -->
+  <div id="quickPhrasesWrapper">
+    <div id="quickPhrasesBar"></div>
+    <button class="qp-edit-btn" id="editQpBtn" title="Настроить быстрые фразы">⚙️</button>
+  </div>
+
+  <div id="sentenceArea">
+    <div class="sentence-header">
+      <span class="sentence-title" id="sentenceTitle">Составление предложения</span>
+      <button class="ctrl-btn primary" id="speakAllBtn" style="padding:0.3rem 0.6rem; font-size:0.85rem;">▶ <span id="speakAllLbl">Озвучить</span></button>
+    </div>
+    <div id="phraseChips"><span id="phraseHint">Нажимайте на карточки ниже, чтобы добавить слова сюда</span></div>
+    <div class="phrase-controls">
+      <button class="ctrl-btn" id="largeBtn" style="flex:1;">👁 <span id="largeLbl">Показать крупно</span></button>
+    </div>
+  </div>
+
+  <nav id="categories"></nav>
+  <main><div id="grid"></div></main>
+
+  <div id="zoomControls">
+    <button id="zoomIn" title="+">A+</button>
+    <div id="zoomPct">100%</div>
+    <button id="zoomOut" title="−">A−</button>
+    <button id="zoomReset" title="↺">↺</button>
+  </div>
+</div>
+
+<!-- Оверлей ввода текста -->
+<div id="typingOverlay" class="hidden">
+  <div class="typing-header">
+    <h2 id="typingTitle" style="font-size:1.5rem;">⌨️ Свободный ввод</h2>
+    <button class="icon-btn" id="closeTypingBtn" style="background:var(--border); color:var(--text); font-size:1.2rem; padding:0.5rem 1rem;">✕ Закрыть</button>
+  </div>
+  <textarea id="typingArea" placeholder="Напишите здесь..."></textarea>
+  <div class="typing-actions">
+    <button class="speak-btn" id="speakTypedBtn">▶ Озвучить</button>
+    <button class="add-btn" id="addTypedBtn">+ В предложение</button>
+  </div>
+</div>
+
+<!-- Модальное окно профилей -->
+<div id="profileModal" class="modal hidden">
+  <div class="modal-content">
+    <h2>👤 Профили</h2>
+    <div id="profileList" style="margin-bottom: 1rem;"></div>
+    <div class="setting-row">
+      <label>Новый профиль</label>
+      <div style="display:flex; gap:0.5rem;">
+        <input type="text" id="newProfileName" placeholder="Имя (например, Мама)" maxlength="30">
+        <button class="ctrl-btn primary" id="createProfileBtn" style="padding: 0 1rem;">+</button>
+      </div>
+    </div>
+    <button class="modal-close" id="closeProfileBtn">Закрыть</button>
+  </div>
+</div>
+
+<!-- Модальное окно настроек быстрых фраз -->
+<div id="qpModal" class="modal hidden">
+  <div class="modal-content">
+    <h2>✏️ Настройка быстрых фраз</h2>
+    <div id="qpList" style="max-height: 40vh; overflow-y: auto; margin-bottom: 1rem;"></div>
+    
+    <div class="setting-row">
+      <label>Добавить новую фразу</label>
+      <div style="display:flex; gap:0.5rem;">
+        <input type="text" id="newQpInput" placeholder="Например: Позвоните дочери" maxlength="50">
+        <button class="ctrl-btn primary" id="addQpBtn" style="padding: 0 1rem;">+</button>
+      </div>
+    </div>
+    
+    <button class="modal-close" id="resetQpBtn" style="background:transparent; border:2px solid var(--border); color:var(--text)">Вернуть стандартные</button>
+    <button class="modal-close" id="closeQpBtn">Готово</button>
+  </div>
+</div>
+
+<!-- Модальное окно настроек -->
+<div id="settingsModal" class="modal hidden">
+  <div class="modal-content">
+    <h2 id="settingsTitle">⚙️ Настройки</h2>
+    <div class="setting-row">
+      <label id="contrastLabel">Контраст</label>
+      <div class="buttons">
+        <button id="contrastNormal">Обычный</button>
+        <button id="contrastHigh">Высокий</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <label><span id="rateLabel">Скорость речи</span>: <span id="rateVal">0.9</span>×</label>
+      <input type="range" id="rateSlider" min="0.5" max="1.5" step="0.1" value="0.9">
+    </div>
+    <div class="setting-row">
+      <label id="voiceToggleLabel">Озвучка при нажатии</label>
+      <button class="toggle" id="voiceToggle">Включено</button>
+    </div>
+    <button class="modal-close" id="closeSettingsBtn">Готово</button>
+  </div>
+</div>
+
+<div id="historyModal" class="modal hidden">
+  <div class="modal-content">
+    <h2 id="historyTitle">История фраз</h2>
+    <ul id="historyList"></ul>
+    <div id="historyEmpty">Пока ничего не сказано</div>
+    <button class="modal-close" id="clearHistoryBtn" style="background:transparent;border:2px solid var(--border);color:var(--text)">Очистить историю</button>
+    <button class="modal-close" id="closeHistoryBtn">Закрыть</button>
+  </div>
+</div>
+
+<div id="addCardModal" class="modal hidden">
+  <div class="modal-content">
+    <h2 id="addCardTitle">➕ Добавить карточку</h2>
+    <div class="setting-row">
+      <label id="addCardPhotoLbl">Фото</label>
+      <input type="file" id="addCardPhoto" accept="image/*">
+    </div>
+    <div class="setting-row">
+      <label id="addCardLabelLbl">Название</label>
+      <input type="text" id="addCardLabel" maxlength="60">
+    </div>
+    <button class="modal-close" id="saveCardBtn">Сохранить</button>
+    <button class="modal-close" id="cancelAddCardBtn" style="background:transparent;border:2px solid var(--border);color:var(--text)">Отмена</button>
+  </div>
+</div>
+
+<div id="editCardModal" class="modal hidden">
+  <div class="modal-content">
+    <h2 id="editCardTitle">Настройка карточки</h2>
+    <div id="editCardBody"></div>
+    <button class="modal-close" id="closeEditBtn">Закрыть</button>
+  </div>
+</div>
+
+<div id="largeOverlay" class="hidden">
+  <div id="largePhrase"></div>
+  <div class="large-actions">
+    <button class="speak" id="largeSpeakBtn">▶ Озвучить</button>
+    <button id="largeCloseBtn">✕ Закрыть</button>
+  </div>
+</div>
+
+<script>
+/* ============ ДАННЫЕ ============ */
+const categories = [
+  { id:"urgent", ru:"Срочно", en:"Urgent", cards:[
+    { e:"🚑", ru:"Вызовите врача", en:"Call a doctor" }, { e:"🆘", ru:"Помогите", en:"Help me" },
+    { e:"😖", ru:"Мне очень плохо", en:"I feel very bad" }, { e:"💔", ru:"Мне больно", en:"I'm in pain" },
+    { e:"😨", ru:"Мне страшно", en:"I'm scared" }, { e:"💨", ru:"Трудно дышать", en:"Hard to breathe" },
+    { e:"⚡", ru:"Срочно", en:"Urgent" }, { e:"📞", ru:"Позвоните близким", en:"Call family" },
+    { e:"🚨", ru:"Опасность", en:"Danger" }, { e:"🤧", ru:"Задыхаюсь", en:"I'm choking" },
+    { e:"🩸", ru:"Кровотечение", en:"Bleeding" }, { e:"🤧", ru:"Аллергия", en:"Allergy" },
+    { e:"🫨", ru:"Кружится голова", en:"Dizzy" }, { e:"🤕", ru:"Я упал", en:"I fell" },
+    { e:"🌡️", ru:"Высокая температура", en:"High fever" }, { e:"🚔", ru:"Вызовите полицию", en:"Call police" },
+    { e:"🚒", ru:"Вызовите пожарных", en:"Call fire dept" }, { e:"🔥", ru:"Пожар", en:"Fire" },
+    { e:"☠️", ru:"Отравление", en:"Poisoning" }, { e:"⚡", ru:"Удар током", en:"Electric shock" },
+    { e:"🦴", ru:"Перелом", en:"Broken bone" }, { e:"🤕", ru:"Травма головы", en:"Head injury" },
+    { e:"🫀", ru:"Сердечный приступ", en:"Heart attack" }, { e:"🧠", ru:"Инсульт", en:"Stroke" },
+    { e:"🌊", ru:"Тону", en:"I'm drowning" }, { e:"🚗", ru:"Авария", en:"Car accident" },
+    { e:"🔪", ru:"Нападение", en:"Assault" }, { e:"🏚️", ru:"Землетрясение", en:"Earthquake" },
+    { e:"🌪️", ru:"Ураган", en:"Hurricane" }, { e:"🌊", ru:"Наводнение", en:"Flood" },
+    { e:"🚪", ru:"Заблокирован", en:"Trapped" }, { e:"🙅", ru:"Не трогайте меня", en:"Don't touch me" },
+    { e:"😰", ru:"Паника", en:"Panic" }, { e:"🩺", ru:"Скорая помощь", en:"Ambulance" },
+    { e:"💊", ru:"Нужна таблетка", en:"Need a pill" }, { e:"💉", ru:"Нужен укол", en:"Need injection" },
+    { e:"🩹", ru:"Нужен бинт", en:"Need bandage" }, { e:"💧", ru:"Умираю от жажды", en:"Dying of thirst" },
+    { e:"🍽️", ru:"Умираю от голода", en:"Dying of hunger" }, { e:"🥶", ru:"Переохлаждение", en:"Hypothermia" },
+    { e:"🥵", ru:"Тепловой удар", en:"Heat stroke" }, { e:"🐍", ru:"Укус змеи", en:"Snake bite" },
+    { e:"🐕", ru:"Укус собаки", en:"Dog bite" }, { e:"🐝", ru:"Укус пчелы", en:"Bee sting" },
+    { e:"⚡", ru:"Эпилепсия", en:"Seizure" }, { e:"😵", ru:"Потеря сознания", en:"Unconscious" },
+    { e:"🦠", ru:"Инфекция", en:"Infection" }, { e:"💨", ru:"Астма", en:"Asthma attack" },
+    { e:"🚽", ru:"Сильная диарея", en:"Severe diarrhea" }, { e:"🤮", ru:"Сильная рвота", en:"Severe vomiting" }
+  ]},
+  { id:"want", ru:"Хочу", en:"I want", cards:[
+    { e:"🍎", ru:"Есть", en:"Food" }, { e:"💧", ru:"Пить", en:"Drink" },
+    { e:"🚽", ru:"В туалет", en:"Toilet" }, { e:"😴", ru:"Спать", en:"Sleep" },
+    { e:"🛏️", ru:"Отдохнуть", en:"Rest" }, { e:"🪟", ru:"Свежий воздух", en:"Fresh air" },
+    { e:"🧣", ru:"Укрыться", en:"Cover up" }, { e:"🔄", ru:"Повернуться", en:"Turn over" },
+    { e:"🎵", ru:"Музыку", en:"Music" }, { e:"🤫", ru:"Тишину", en:"Quiet" },
+    { e:"💡", ru:"Свет", en:"Light" }, { e:"📱", ru:"Телефон", en:"Phone" },
+    { e:"🚶", ru:"Гулять", en:"Walk" }, { e:"📺", ru:"Телевизор", en:"TV" },
+    { e:"📖", ru:"Читать", en:"Read" }, { e:"🤗", ru:"Обниматься", en:"Hug" },
+    { e:"🪑", ru:"Сесть", en:"Sit down" }, { e:"🧍", ru:"Встать", en:"Stand up" },
+    { e:"🛌", ru:"Лечь", en:"Lie down" }, { e:"🪭", ru:"Прохладу", en:"Cool down" },
+    { e:"🔥", ru:"Тепло", en:"Warm up" }, { e:"💊", ru:"Лекарство", en:"Medicine" },
+    { e:"👓", ru:"Очки", en:"Glasses" }, { e:"🦻", ru:"Слуховой аппарат", en:"Hearing aid" },
+    { e:"🪥", ru:"Почистить зубы", en:"Brush teeth" }, { e:"🚿", ru:"Помыться", en:"Wash up" },
+    { e:"💇", ru:"Подстричься", en:"Haircut" }, { e:"🧴", ru:"Крем", en:"Lotion" },
+    { e:"🧻", ru:"Туалетную бумагу", en:"Toilet paper" }, { e:"🗑️", ru:"Мусорку", en:"Trash can" },
+    { e:"🕯️", ru:"Свечу", en:"Candle" }, { e:"🔋", ru:"Батарейку", en:"Battery" },
+    { e:"🔌", ru:"Зарядку", en:"Charger" }, { e:"🛠️", ru:"Инструменты", en:"Tools" },
+    { e:"🧸", ru:"Игрушку", en:"Toy" }, { e:"🎨", ru:"Краски", en:"Paints" },
+    { e:"✏️", ru:"Ручку", en:"Pen" }, { e:"📝", ru:"Бумагу", en:"Paper" },
+    { e:"📞", ru:"Позвонить", en:"Make a call" }, { e:"✉️", ru:"Письмо", en:"Letter" },
+    { e:"👨‍👩‍👧", ru:"Семью", en:"Family" }, { e:"🐕", ru:"Собаку", en:"Dog" },
+    { e:"🐈", ru:"Кошку", en:"Cat" }, { e:"🍬", ru:"Сладкое", en:"Sweets" },
+    { e:"☕", ru:"Кофе", en:"Coffee" }, { e:"🍵", ru:"Чай", en:"Tea" },
+    { e:"🍺", ru:"Пиво", en:"Beer" }, { e:"🍷", ru:"Вино", en:"Wine" },
+    { e:"🚬", ru:"Сигарету", en:"Cigarette" }, { e:"🛌", ru:"Подушку", en:"Pillow" }
+  ]},
+  { id:"pain", ru:"Боль / симптомы", en:"Pain / symptoms", cards:[
+    { e:"🤕", ru:"Болит голова", en:"Headache" }, { e:"😣", ru:"Болит живот", en:"Stomach ache" },
+    { e:"🦴", ru:"Болит спина", en:"Back pain" }, { e:"🤢", ru:"Тошнит", en:"Nausea" },
+    { e:"🌡️", ru:"Жар", en:"Fever" }, { e:"🥶", ru:"Холодно", en:"Cold" },
+    { e:"🥵", ru:"Жарко", en:"Hot" }, { e:"💤", ru:"Слабость", en:"Weakness" },
+    { e:"🫀", ru:"Болит сердце", en:"Chest pain" }, { e:"🦵", ru:"Болит нога", en:"Leg pain" },
+    { e:"💪", ru:"Болит рука", en:"Arm pain" }, { e:"🦷", ru:"Болит зуб", en:"Toothache" },
+    { e:"👁️", ru:"Болит глаз", en:"Eye pain" }, { e:"👂", ru:"Болит ухо", en:"Ear pain" },
+    { e:"🗣️", ru:"Болит горло", en:"Sore throat" }, { e:"🩹", ru:"Порез / рана", en:"Cut / wound" },
+    { e:"🔥", ru:"Ожог", en:"Burn" }, { e:"🟣", ru:"Синяк", en:"Bruise" },
+    { e:"🦴", ru:"Ломота в теле", en:"Body aches" }, { e:"🤧", ru:"Насморк", en:"Runny nose" },
+    { e:"🤧", ru:"Кашель", en:"Cough" }, { e:"🤧", ru:"Чихание", en:"Sneezing" },
+    { e:"🫁", ru:"Одышка", en:"Shortness of breath" }, { e:"🫀", ru:"Учащенный пульс", en:"Rapid pulse" },
+    { e:"🩸", ru:"Высокое давление", en:"High blood pressure" }, { e:"🩸", ru:"Низкое давление", en:"Low blood pressure" },
+    { e:"🫨", ru:"Головокружение", en:"Dizziness" }, { e:"😵", ru:"Дурнота", en:"Faintness" },
+    { e:"🤢", ru:"Рвота", en:"Vomiting" }, { e:"🚽", ru:"Диарея", en:"Diarrhea" },
+    { e:"🚽", ru:"Запор", en:"Constipation" }, { e:"😖", ru:"Вздутие живота", en:"Bloating" },
+    { e:"🦵", ru:"Судорога", en:"Cramp" }, { e:"🤲", ru:"Онемение", en:"Numbness" },
+    { e:"🐜", ru:"Покалывание", en:"Tingling" }, { e:"🤕", ru:"Опухоль", en:"Swelling" },
+    { e:"🔴", ru:"Сыпь", en:"Rash" }, { e:"🤕", ru:"Зуд", en:"Itching" },
+    { e:"🦴", ru:"Боль в шее", en:"Neck pain" }, { e:"🦴", ru:"Боль в плече", en:"Shoulder pain" },
+    { e:"🦴", ru:"Боль в колене", en:"Knee pain" }, { e:"🦶", ru:"Боль в стопе", en:"Foot pain" },
+    { e:"🖐️", ru:"Боль в кисти", en:"Hand pain" }, { e:"🦷", ru:"Боль в челюсти", en:"Jaw pain" },
+    { e:"👁️", ru:"Размытое зрение", en:"Blurred vision" }, { e:"👂", ru:"Шум в ушах", en:"Ringing in ears" },
+    { e:"👄", ru:"Сухость во рту", en:"Dry mouth" }, { e:"😷", ru:"Озноб", en:"Chills" },
+    { e:"💦", ru:"Потливость", en:"Sweating" }, { e:"😵", ru:"Бессонница", en:"Insomnia" }
+  ]},
+  { id:"med", ru:"Медицина", en:"Medical", cards:[
+    { e:"💊", ru:"Дайте таблетку", en:"Give me a pill" }, { e:"💉", ru:"Обезболивающее", en:"Painkiller" },
+    { e:"🩺", ru:"Измерьте давление", en:"Check pressure" }, { e:"👩‍⚕️", ru:"Позовите медсестру", en:"Call the nurse" },
+    { e:"👨‍⚕️", ru:"Позовите врача", en:"Call the doctor" }, { e:"🚰", ru:"Дайте воды", en:"Give me water" },
+    { e:"🚿", ru:"Помогите помыться", en:"Help me wash" }, { e:"🛌", ru:"Поправьте подушку", en:"Fix my pillow" },
+    { e:"🩹", ru:"Нужен пластырь", en:"Need a bandage" }, { e:"🌡️", ru:"Измерьте температуру", en:"Check temperature" },
+    { e:"💧", ru:"Поставьте капельницу", en:"Need an IV drip" }, { e:"🧴", ru:"Дайте мазь", en:"Give me ointment" },
+    { e:"🧊", ru:"Приложите холод", en:"Apply cold" }, { e:"♨️", ru:"Грелка", en:"Hot water bottle" },
+    { e:"💨", ru:"Нужен кислород", en:"Need oxygen" }, { e:"🚽", ru:"Нужно судно", en:"Need a bedpan" },
+    { e:"🧷", ru:"Сменить подгузник", en:"Change diaper" }, { e:"💉", ru:"Сделайте укол", en:"Give injection" },
+    { e:"💊", ru:"Антибиотик", en:"Antibiotic" }, { e:"💊", ru:"Витамины", en:"Vitamins" },
+    { e:"💊", ru:"Снотворное", en:"Sleeping pill" }, { e:"💊", ru:"Слабительное", en:"Laxative" },
+    { e:"💊", ru:"От тошноты", en:"Anti-nausea" }, { e:"💧", ru:"Капли для глаз", en:"Eye drops" },
+    { e:"💧", ru:"Капли для ушей", en:"Ear drops" }, { e:"👃", ru:"Спрей для носа", en:"Nose spray" },
+    { e:"💨", ru:"Ингалятор", en:"Inhaler" }, { e:"🧪", ru:"Сдать анализ", en:"Take a test" },
+    { e:"🩸", ru:"Анализ крови", en:"Blood test" }, { e:"📷", ru:"Рентген", en:"X-ray" },
+    { e:"🖥️", ru:"УЗИ", en:"Ultrasound" }, { e:"📈", ru:"Кардиограмма", en:"ECG" },
+    { e:"😷", ru:"Маска", en:"Mask" }, { e:"🩼", ru:"Костыли", en:"Crutches" },
+    { e:"🦽", ru:"Инвалидная коляска", en:"Wheelchair" }, { e:"🦯", ru:"Трость", en:"Cane" },
+    { e:"🛏️", ru:"Функциональная кровать", en:"Hospital bed" }, { e:"🏥", ru:"Больница", en:"Hospital" },
+    { e:"🏢", ru:"Поликлиника", en:"Clinic" }, { e:"🚑", ru:"Скорая", en:"Ambulance" },
+    { e:"🔪", ru:"Операция", en:"Operation" }, { e:"🩺", ru:"Стетоскоп", en:"Stethoscope" },
+    { e:"🌡️", ru:"Термометр", en:"Thermometer" }, { e:"🩸", ru:"Глюкометр", en:"Glucometer" },
+    { e:"💊", ru:"Обезболивающий пластырь", en:"Pain patch" }, { e:"🧴", ru:"Антисептик", en:"Sanitizer" },
+    { e:"🧻", ru:"Влажные салфетки", en:"Wet wipes" }, { e:"🧻", ru:"Туалетная бумага", en:"Toilet paper" },
+    { e:"🥤", ru:"Трубочка для питья", en:"Drinking straw" }, { e:"🛁", ru:"Помощь в ванной", en:"Bathroom help" }
+  ]},
+  { id:"yesno", ru:"Да / Нет", en:"Yes / No", cards:[
+    { e:"✅", ru:"Да", en:"Yes" }, { e:"❌", ru:"Нет", en:"No" },
+    { e:"❓", ru:"Не знаю", en:"I don't know" }, { e:"🤷", ru:"Может быть", en:"Maybe" },
+    { e:"👍", ru:"Хорошо", en:"Good" }, { e:"👎", ru:"Плохо", en:"Bad" },
+    { e:"⏸️", ru:"Подождите", en:"Wait" }, { e:"🔁", ru:"Ещё раз", en:"Again" },
+    { e:"✔️", ru:"Верно", en:"Correct" }, { e:"✖️", ru:"Неверно", en:"Wrong" },
+    { e:"🤝", ru:"Согласен", en:"Agree" }, { e:"🙅", ru:"Не согласен", en:"Disagree" },
+    { e:"❤️", ru:"Нравится", en:"I like it" }, { e:"💔", ru:"Не нравится", en:"I don't like it" },
+    { e:"🙌", ru:"Хочу", en:"I want" }, { e:"🚫", ru:"Не хочу", en:"I don't want" },
+    { e:"🧠", ru:"Понимаю", en:"Understand" }, { e:"🤯", ru:"Не понимаю", en:"Don't understand" },
+    { e:"🧠", ru:"Помню", en:"Remember" }, { e:"🤔", ru:"Забыл", en:"Forgot" },
+    { e:"💯", ru:"Точно", en:"Exactly" }, { e:"🤏", ru:"Примерно", en:"Approximately" },
+    { e:"🛑", ru:"Стоп", en:"Stop" }, { e:"🚶", ru:"Иди", en:"Go" },
+    { e:"➕", ru:"Больше", en:"More" }, { e:"➖", ru:"Меньше", en:"Less" },
+    { e:"🫱", ru:"Достаточно", en:"Enough" }, { e:"🌊", ru:"Слишком много", en:"Too much" },
+    { e:"🤏", ru:"Слишком мало", en:"Too little" }, { e:"🥵", ru:"Горячо", en:"Hot" },
+    { e:"🥶", ru:"Холодно", en:"Cold" }, { e:"👇", ru:"Здесь", en:"Here" },
+    { e:"👉", ru:"Там", en:"There" }, { e:"⏰", ru:"Сейчас", en:"Now" },
+    { e:"⏳", ru:"Позже", en:"Later" }, { e:"♾️", ru:"Всегда", en:"Always" },
+    { e:"🚫", ru:"Никогда", en:"Never" }, { e:"🔄", ru:"Иногда", en:"Sometimes" },
+    { e:"🔁", ru:"Часто", en:"Often" }, { e:"🤏", ru:"Редко", en:"Rarely" },
+    { e:"💯", ru:"Обязательно", en:"Definitely" }, { e:"🎲", ru:"Возможно", en:"Probably" },
+    { e:"🚫", ru:"Невозможно", en:"Impossible" }, { e:"✅", ru:"Возможно", en:"Possible" },
+    { e:"👉", ru:"Направо", en:"Right" }, { e:"👈", ru:"Налево", en:"Left" },
+    { e:"⬆️", ru:"Вверх", en:"Up" }, { e:"⬇️", ru:"Вниз", en:"Down" },
+    { e:"🆗", ru:"Всё нормально", en:"It's fine" }, { e:"🆘", ru:"Всё плохо", en:"It's bad" }
+  ]},
+  { id:"emo", ru:"Эмоции", en:"Emotions", cards:[
+    { e:"🙂", ru:"Спокойно", en:"Calm" }, { e:"😊", ru:"Радость", en:"Happy" },
+    { e:"😢", ru:"Грустно", en:"Sad" }, { e:"😠", ru:"Злюсь", en:"Angry" },
+    { e:"😨", ru:"Страшно", en:"Scared" }, { e:"😫", ru:"Устал", en:"Tired" },
+    { e:"🥰", ru:"Люблю", en:"I love you" }, { e:"🙏", ru:"Спасибо", en:"Thank you" },
+    { e:"😔", ru:"Одиноко", en:"Lonely" }, { e:"🥱", ru:"Скучно", en:"Bored" },
+    { e:"😰", ru:"Тревожно", en:"Anxious" }, { e:"😂", ru:"Смешно", en:"Funny" },
+    { e:"😳", ru:"Стыдно", en:"Ashamed" }, { e:"😲", ru:"Удивлён", en:"Surprised" },
+    { e:"😞", ru:"Разочарован", en:"Disappointed" }, { e:"🤩", ru:"Восхищён", en:"Amazed" },
+    { e:"🤬", ru:"В ярости", en:"Furious" }, { e:"😱", ru:"В ужасе", en:"Terrified" },
+    { e:"😭", ru:"Плачу", en:"Crying" }, { e:"🤤", ru:"Голоден", en:"Hungry" },
+    { e:"🥵", ru:"Возбуждён", en:"Excited" }, { e:"😑", ru:"Равнодушен", en:"Indifferent" },
+    { e:"🤔", ru:"Задумчив", en:"Thoughtful" }, { e:"😪", ru:"Сонный", en:"Sleepy" },
+    { e:"😷", ru:"Болею", en:"Sick" }, { e:"🤕", ru:"Мне больно", en:"Hurting" },
+    { e:"🥳", ru:"Весело", en:"Joyful" }, { e:"😎", ru:"Уверен", en:"Confident" },
+    { e:"😬", ru:"Неловко", en:"Awkward" }, { e:"🤯", ru:"В шоке", en:"Shocked" },
+    { e:"🤢", ru:"Противно", en:"Disgusted" }, { e:"🥺", ru:"Жалко", en:"Pity" },
+    { e:"🫂", ru:"Нужна поддержка", en:"Need support" }, { e:"🤗", ru:"Хочу обнять", en:"Want a hug" },
+    { e:"😌", ru:"Облегчение", en:"Relieved" }, { e:"😤", ru:"Решителен", en:"Determined" },
+    { e:"🙄", ru:"Раздражён", en:"Annoyed" }, { e:"😩", ru:"Измучен", en:"Exhausted" },
+    { e:"🥴", ru:"Ошеломлён", en:"Overwhelmed" }, { e:"😇", ru:"Счастлив", en:"Blissful" },
+    { e:"🥲", ru:"Трогательно", en:"Touched" }, { e:"😏", ru:"Хитрю", en:"Sly" },
+    { e:"🫤", ru:"Скептичен", en:"Skeptical" }, { e:"🤫", ru:"Хочу тишины", en:"Want silence" },
+    { e:"🤪", ru:"Сумасшедший", en:"Crazy" }, { e:"🫠", ru:"Таю от нежности", en:"Melting" },
+    { e:"💔", ru:"Сердце разбито", en:"Heartbroken" }, { e:"❤️‍🩹", ru:"Исцеляюсь", en:"Healing" },
+    { e:"😶", ru:"Без слов", en:"Speechless" }, { e:"🤐", ru:"Молчу", en:"Silent" }
+  ]},
+  { id:"food", ru:"Еда и напитки", en:"Food & Drinks", cards:[
+    { e:"🍞", ru:"Хлеб", en:"Bread" }, { e:"🍎", ru:"Яблоко", en:"Apple" },
+    { e:"🍌", ru:"Банан", en:"Banana" }, { e:"🥛", ru:"Молоко", en:"Milk" },
+    { e:"🍲", ru:"Суп", en:"Soup" }, { e:"🍝", ru:"Макароны", en:"Pasta" },
+    { e:"🍪", ru:"Печенье", en:"Cookie" }, { e:"🥤", ru:"Сок", en:"Juice" },
+    { e:"☕", ru:"Чай / Кофе", en:"Tea / Coffee" }, { e:"🥩", ru:"Мясо", en:"Meat" },
+    { e:"🥣", ru:"Каша", en:"Porridge" }, { e:"🧀", ru:"Сыр", en:"Cheese" },
+    { e:"🐟", ru:"Рыба", en:"Fish" }, { e:"🍗", ru:"Курица", en:"Chicken" },
+    { e:"🥔", ru:"Картошка", en:"Potato" }, { e:"🥦", ru:"Овощи", en:"Vegetables" },
+    { e:"🍇", ru:"Фрукты", en:"Fruits" }, { e:"🍰", ru:"Сладкое", en:"Sweets" },
+    { e:"💧", ru:"Вода", en:"Water" }, { e:"🍚", ru:"Рис", en:"Rice" },
+    { e:"🥚", ru:"Яйцо", en:"Egg" }, { e:"🧈", ru:"Масло", en:"Butter" },
+    { e:"🥗", ru:"Салат", en:"Salad" }, { e:"🍊", ru:"Апельсин", en:"Orange" },
+    { e:"🍇", ru:"Виноград", en:"Grapes" }, { e:"🍓", ru:"Клубника", en:"Strawberry" },
+    { e:"🍉", ru:"Арбуз", en:"Watermelon" }, { e:"🍫", ru:"Шоколад", en:"Chocolate" },
+    { e:"🍬", ru:"Конфета", en:"Candy" }, { e:"🍦", ru:"Мороженое", en:"Ice cream" },
+    { e:"🍯", ru:"Мёд", en:"Honey" }, { e:"🍓", ru:"Варенье", en:"Jam" },
+    { e:"🧂", ru:"Соль", en:"Salt" }, { e:"🌶️", ru:"Перец", en:"Pepper" },
+    { e:"🍬", ru:"Сахар", en:"Sugar" }, { e:"🥫", ru:"Соус", en:"Sauce" },
+    { e:"🍅", ru:"Кетчуп", en:"Ketchup" }, { e:"🥚", ru:"Майонез", en:"Mayonnaise" },
+    { e:"🥣", ru:"Хлопья", en:"Cereal" }, { e:"🥛", ru:"Йогурт", en:"Yogurt" },
+    { e:"🧀", ru:"Творог", en:"Cottage cheese" }, { e:"🥜", ru:"Орехи", en:"Nuts" },
+    { e:"🍟", ru:"Чипсы", en:"Chips" }, { e:"🍕", ru:"Пицца", en:"Pizza" },
+    { e:"🥪", ru:"Бутерброд", en:"Sandwich" }, { e:"🌭", ru:"Хот-дог", en:"Hot dog" },
+    { e:"🍔", ru:"Бургер", en:"Burger" }, { e:"🍜", ru:"Лапша", en:"Noodles" },
+    { e:"🍲", ru:"Борщ", en:"Borscht" }, { e:"🥟", ru:"Пельмени", en:"Dumplings" }
+  ]},
+  { id:"clothes", ru:"Одежда", en:"Clothing", cards:[
+    { e:"👕", ru:"Футболка", en:"T-shirt" }, { e:"👖", ru:"Штаны", en:"Pants" },
+    { e:"🧦", ru:"Носки", en:"Socks" }, { e:"👟", ru:"Обувь", en:"Shoes" },
+    { e:"🧥", ru:"Куртка", en:"Jacket" }, { e:"🧢", ru:"Шапка", en:"Hat" },
+    { e:"👓", ru:"Очки", en:"Glasses" }, { e:"🧣", ru:"Шарф", en:"Scarf" },
+    { e:"🧤", ru:"Перчатки", en:"Gloves" }, { e:"🩳", ru:"Шорты", en:"Shorts" },
+    { e:"🛏️", ru:"Одеяло", en:"Blanket" }, { e:"👗", ru:"Платье", en:"Dress" },
+    { e:"👔", ru:"Свитер", en:"Sweater" }, { e:"🩴", ru:"Тапки", en:"Slippers" },
+    { e:"👘", ru:"Пижама", en:"Pajamas" }, { e:"🥼", ru:"Халат", en:"Robe" },
+    { e:"🩲", ru:"Нижнее бельё", en:"Underwear" }, { e:"🤐", ru:"Застегните", en:"Zip/button up" },
+    { e:"👚", ru:"Блузка", en:"Blouse" }, { e:"👖", ru:"Джинсы", en:"Jeans" },
+    { e:"👗", ru:"Юбка", en:"Skirt" }, { e:"🧥", ru:"Пальто", en:"Coat" },
+    { e:"🧥", ru:"Плащ", en:"Raincoat" }, { e:"👔", ru:"Костюм", en:"Suit" },
+    { e:"👔", ru:"Галстук", en:"Tie" }, { e:"🧦", ru:"Колготки", en:"Stockings" },
+    { e:"🥾", ru:"Ботинки", en:"Boots" }, { e:"🩴", ru:"Сандалии", en:"Sandals" },
+    { e:"🧢", ru:"Кепка", en:"Cap" }, { e:"🧤", ru:"Варежки", en:"Mittens" },
+    { e:"👖", ru:"Ремень", en:"Belt" }, { e:"🕶️", ru:"Солнечные очки", en:"Sunglasses" },
+    { e:"⌚", ru:"Часы", en:"Watch" }, { e:"💍", ru:"Кольцо", en:"Ring" },
+    { e:"💍", ru:"Серьги", en:"Earrings" }, { e:"📿", ru:"Ожерелье", en:"Necklace" },
+    { e:"📿", ru:"Браслет", en:"Bracelet" }, { e:"🩱", ru:"Купальник", en:"Swimsuit" },
+    { e:"👘", ru:"Халат медицинский", en:"Medical gown" }, { e:"🥻", ru:"Фартук", en:"Apron" },
+    { e:"👶", ru:"Подгузник", en:"Diaper" }, { e:"😷", ru:"Маска медицинская", en:"Medical mask" },
+    { e:"🪖", ru:"Каска", en:"Helmet" }, { e:"👜", ru:"Сумка", en:"Bag" },
+    { e:"🎒", ru:"Рюкзак", en:"Backpack" }, { e:"👛", ru:"Кошелёк", en:"Wallet" },
+    { e:"☂️", ru:"Зонт", en:"Umbrella" }, { e:"🧻", ru:"Платок", en:"Handkerchief" },
+    { e:"🛁", ru:"Полотенце", en:"Towel" }, { e:"🩹", ru:"Повязка", en:"Bandage" }
+  ]},
+  { id:"comm", ru:"Общение", en:"Communication", cards:[
+    { e:"✍️", ru:"Напишите", en:"Write it" }, { e:"👀", ru:"Посмотрите на меня", en:"Look at me" },
+    { e:"🗣️", ru:"Говорите медленнее", en:"Speak slower" }, { e:"🔁", ru:"Повторите", en:"Repeat" },
+    { e:"🤐", ru:"Я не могу говорить", en:"I can't speak" }, { e:"👂", ru:"Я понимаю", en:"I understand" },
+    { e:"❓", ru:"Я не понимаю", en:"I don't understand" }, { e:"🙋", ru:"Мне нужна помощь", en:"I need help" },
+    { e:"📱", ru:"Позвоните", en:"Call" }, { e:"✏️", ru:"Дайте ручку", en:"Give a pen" },
+    { e:"🙋‍♂️", ru:"Я здесь", en:"I am here" }, { e:"🔇", ru:"Не слышу", en:"I can't hear" },
+    { e:"👁️", ru:"Плохо вижу", en:"I can't see well" }, { e:"📢", ru:"Говорите громче", en:"Speak louder" },
+    { e:"📝", ru:"Напишите на бумаге", en:"Write on paper" }, { e:"🤟", ru:"Язык жестов", en:"Sign language" },
+    { e:"🙋", ru:"Помогите перевести", en:"Help translate" }, { e:"📧", ru:"Отправьте сообщение", en:"Send a message" },
+    { e:"📞", ru:"Позвоните маме", en:"Call mom" }, { e:"📞", ru:"Позвоните папе", en:"Call dad" },
+    { e:"🚑", ru:"Позвоните врачу", en:"Call doctor" }, { e:"👮", ru:"Позвоните в полицию", en:"Call police" },
+    { e:"📢", ru:"Объявите", en:"Announce" }, { e:"📄", ru:"Прочитайте", en:"Read this" },
+    { e:"👂", ru:"Слушайте", en:"Listen" }, { e:"👀", ru:"Смотрите", en:"Look" },
+    { e:"🤫", ru:"Тише", en:"Quieter" }, { e:"🔊", ru:"Громче", en:"Louder" },
+    { e:"🗣️", ru:"Говорите по слогам", en:"Speak syllable by syllable" }, { e:"🎤", ru:"Говорите в микрофон", en:"Speak into mic" },
+    { e:"🤐", ru:"Я устал говорить", en:"I'm tired of speaking" }, { e:"🧏", ru:"Я глухой", en:"I'm deaf" },
+    { e:"🦯", ru:"Я незрячий", en:"I'm blind" }, { e:"🦽", ru:"Я не могу ходить", en:"I can't walk" },
+    { e:"🙅", ru:"Не перебивайте", en:"Don't interrupt" }, { e:"✋", ru:"Дайте сказать", en:"Let me speak" },
+    { e:"📖", ru:"Покажите книгу", en:"Show the book" }, { e:"🖼️", ru:"Покажите картинку", en:"Show picture" },
+    { e:"📺", ru:"Включите новости", en:"Turn on news" }, { e:"🎵", ru:"Включите музыку", en:"Turn on music" },
+    { e:"🤝", ru:"Давайте познакомимся", en:"Let's meet" }, { e:"👋", ru:"До свидания", en:"Goodbye" },
+    { e:"👋", ru:"Привет", en:"Hello" }, { e:"🙏", ru:"Пожалуйста", en:"Please" },
+    { e:"🙏", ru:"Извините", en:"Sorry" }, { e:"👍", ru:"Спасибо", en:"Thanks" },
+    { e:"💬", ru:"Я хочу поговорить", en:"I want to talk" }, { e:"🤔", ru:"Мне нужно подумать", en:"I need to think" },
+    { e:"⏸️", ru:"Подождите минуту", en:"Wait a minute" }, { e:"🏃", ru:"Мне нужно идти", en:"I need to go" }
+  ]},
+  { id:"actions", ru:"Действия", en:"Actions", cards:[
+    { e:"▶️", ru:"Включите", en:"Turn on" }, { e:"⏹️", ru:"Выключите", en:"Turn off" },
+    { e:"✋", ru:"Стоп", en:"Stop" }, { e:"👉", ru:"Дайте", en:"Give" },
+    { e:"🚪", ru:"Откройте", en:"Open" }, { e:"🔐", ru:"Закройте", en:"Close" },
+    { e:"🔄", ru:"Ещё", en:"More" }, { e:"✅", ru:"Готово", en:"Done" },
+    { e:"🚶", ru:"Идите сюда", en:"Come here" }, { e:"🛑", ru:"Не делайте", en:"Don't do it" },
+    { e:"🪑", ru:"Сядьте", en:"Sit down" }, { e:"🧍", ru:"Встаньте", en:"Stand up" },
+    { e:"🛌", ru:"Лягте", en:"Lie down" }, { e:"⬆️", ru:"Поднимите", en:"Lift up" },
+    { e:"⬇️", ru:"Опустите", en:"Put down" }, { e:"🤲", ru:"Возьмите", en:"Take" },
+    { e:"🚶", ru:"Идите", en:"Go" }, { e:"🏃", ru:"Бегите", en:"Run" },
+    { e:"🦘", ru:"Прыгайте", en:"Jump" }, { e:"🤸", ru:"Наклонитесь", en:"Bend over" },
+    { e:"🔄", ru:"Повернитесь", en:"Turn around" }, { e:"👋", ru:"Помашите", en:"Wave" },
+    { e:"👏", ru:"Хлопайте", en:"Clap" }, { e:"🤏", ru:"Сожмите", en:"Squeeze" },
+    { e:"🖐️", ru:"Отпустите", en:"Let go" }, { e:"👆", ru:"Нажмите", en:"Press" },
+    { e:"🫳", ru:"Бросьте", en:"Drop" }, { e:"🤲", ru:"Поймайте", en:"Catch" },
+    { e:"🫸", ru:"Толкните", en:"Push" }, { e:"🫷", ru:"Потяните", en:"Pull" },
+    { e:"🧼", ru:"Помойте", en:"Wash" }, { e:"🧻", ru:"Вытрите", en:"Wipe" },
+    { e:"🪥", ru:"Почистите", en:"Brush" }, { e:"🍽️", ru:"Покормите", en:"Feed" },
+    { e:"🥤", ru:"Напоите", en:"Give drink" }, { e:"👕", ru:"Оденьте", en:"Dress" },
+    { e:"👗", ru:"Разденьте", en:"Undress" }, { e:"🛏️", ru:"Уложите", en:"Put to bed" },
+    { e:"⏰", ru:"Разбудите", en:"Wake up" }, { e:"🚽", ru:"Отведите в туалет", en:"Take to toilet" },
+    { e:"🚿", ru:"Искупайте", en:"Bathe" }, { e:"💊", ru:"Дайте лекарство", en:"Give medicine" },
+    { e:"🩺", ru:"Осмотрите", en:"Examine" }, { e:"💉", ru:"Сделайте укол", en:"Inject" },
+    { e:"🧴", ru:"Намажьте", en:"Apply cream" }, { e:"🩹", ru:"Заклейте", en:"Bandage" },
+    { e:"📞", ru:"Позвоните", en:"Call" }, { e:"✍️", ru:"Напишите", en:"Write" },
+    { e:"📖", ru:"Прочитайте", en:"Read" }, { e:"🗣️", ru:"Скажите", en:"Say" }
+  ]},
+  { id:"people", ru:"Люди", en:"People", cards:[
+    { e:"👩", ru:"Мама", en:"Mom" }, { e:"👨", ru:"Папа", en:"Dad" },
+    { e:"👩‍⚕️", ru:"Врач", en:"Doctor" }, { e:"🧑‍⚕️", ru:"Медсестра", en:"Nurse" },
+    { e:"👨‍👩‍👧", ru:"Семья", en:"Family" }, { e:"👫", ru:"Друг", en:"Friend" },
+    { e:"👶", ru:"Ребёнок", en:"Child" }, { e:"🙋", ru:"Кто-нибудь", en:"Someone" },
+    { e:"👴", ru:"Пожилой человек", en:"Elderly" }, { e:"🧑‍🤝‍🧑", ru:"Сиделка", en:"Caregiver" },
+    { e:"👦", ru:"Сын", en:"Son" }, { e:"👧", ru:"Дочь", en:"Daughter" },
+    { e:"👨‍🦳", ru:"Дедушка", en:"Grandpa" }, { e:"👩‍🦳", ru:"Бабушка", en:"Grandma" },
+    { e:"👨‍🦱", ru:"Брат", en:"Brother" }, { e:"👩‍🦰", ru:"Сестра", en:"Sister" },
+    { e:"🤵", ru:"Муж", en:"Husband" }, { e:"👰", ru:"Жена", en:"Wife" },
+    { e:"👨‍🏫", ru:"Учитель", en:"Teacher" }, { e:"🧑‍🎓", ru:"Студент", en:"Student" },
+    { e:"👮", ru:"Полицейский", en:"Police" }, { e:"🧑‍🚒", ru:"Пожарный", en:"Firefighter" },
+    { e:"🧑‍🔧", ru:"Сантехник", en:"Plumber" }, { e:"🧑‍🍳", ru:"Повар", en:"Cook" },
+    { e:"🧹", ru:"Уборщица", en:"Cleaner" }, { e:"💼", ru:"Начальник", en:"Boss" },
+    { e:"🧑‍💼", ru:"Коллега", en:"Colleague" }, { e:"🧑‍💼", ru:"Клиент", en:"Client" },
+    { e:"🧑‍🦽", ru:"Пациент", en:"Patient" }, { e:"🚶", ru:"Посетитель", en:"Visitor" },
+    { e:"🧑‍🤝‍🧑", ru:"Гость", en:"Guest" }, { e:"👥", ru:"Группа", en:"Group" },
+    { e:"👨‍👩‍👦", ru:"Команда", en:"Team" }, { e:"🧑‍🤝‍🧑", ru:"Люди", en:"People" },
+    { e:"👥", ru:"Толпа", en:"Crowd" }, { e:"🚶", ru:"Прохожий", en:"Passerby" },
+    { e:"🧑", ru:"Незнакомец", en:"Stranger" }, { e:"🚫", ru:"Никто", en:"Nobody" },
+    { e:"🌍", ru:"Все", en:"Everybody" }, { e:"🧑", ru:"Кто-то", en:"Somebody" },
+    { e:"🫵", ru:"Я", en:"Me" }, { e:"👦", ru:"Мальчик", en:"Boy" },
+    { e:"👧", ru:"Девочка", en:"Girl" }, { e:"👨", ru:"Мужчина", en:"Man" },
+    { e:"👩", ru:"Женщина", en:"Woman" }, { e:"👨‍🦱", ru:"Взрослый", en:"Adult" },
+    { e:"👶", ru:"Младенец", en:"Baby" }, { e:"👨‍👩‍👧", ru:"Родственник", en:"Relative" },
+    { e:"🤝", ru:"Сосед", en:"Neighbor" }, { e:"👨‍🏫", ru:"Воспитатель", en:"Educator" }
+  ]},
+  { id:"places", ru:"Места", en:"Places", cards:[
+    { e:"🏠", ru:"Дом", en:"Home" }, { e:"🏥", ru:"Больница", en:"Hospital" },
+    { e:"🚪", ru:"Комната", en:"Room" }, { e:"🚽", ru:"Туалет", en:"Bathroom" },
+    { e:"🌳", ru:"Улица", en:"Outside" }, { e:"🛏️", ru:"Кровать", en:"Bed" },
+    { e:"🪑", ru:"Стул", en:"Chair" }, { e:"🪟", ru:"Окно", en:"Window" },
+    { e:"🍳", ru:"Кухня", en:"Kitchen" }, { e:"🚗", ru:"Машина", en:"Car" },
+    { e:"🏞️", ru:"Парк", en:"Park" }, { e:"🛒", ru:"Магазин", en:"Store" },
+    { e:"🏢", ru:"Поликлиника", en:"Clinic" }, { e:"🪜", ru:"Балкон", en:"Balcony" },
+    { e:"🚪", ru:"Коридор", en:"Hallway" }, { e:"🛗", ru:"Лифт", en:"Elevator" },
+    { e:"🛋️", ru:"Гостиная", en:"Living room" }, { e:"🛏️", ru:"Спальня", en:"Bedroom" },
+    { e:"🚿", ru:"Ванная", en:"Shower room" }, { e:"🌿", ru:"Двор", en:"Yard" },
+    { e:"🌺", ru:"Сад", en:"Garden" }, { e:"🛣️", ru:"Дорога", en:"Road" },
+    { e:"🏙️", ru:"Город", en:"City" }, { e:"🏡", ru:"Деревня", en:"Village" },
+    { e:"🏪", ru:"Рынок", en:"Market" }, { e:"💊", ru:"Аптека", en:"Pharmacy" },
+    { e:"🏫", ru:"Школа", en:"School" }, { e:"🏢", ru:"Работа", en:"Work" },
+    { e:"🏢", ru:"Офис", en:"Office" }, { e:"🏦", ru:"Банк", en:"Bank" },
+    { e:"📮", ru:"Почта", en:"Post office" }, { e:"🍽️", ru:"Ресторан", en:"Restaurant" },
+    { e:"☕", ru:"Кафе", en:"Cafe" }, { e:"🏨", ru:"Гостиница", en:"Hotel" },
+    { e:"✈️", ru:"Аэропорт", en:"Airport" }, { e:"🚉", ru:"Вокзал", en:"Station" },
+    { e:"🚏", ru:"Остановка", en:"Bus stop" }, { e:"🚌", ru:"Автобус", en:"Bus" },
+    { e:"🚆", ru:"Поезд", en:"Train" }, { e:"✈️", ru:"Самолет", en:"Plane" },
+    { e:"⛴️", ru:"Корабль", en:"Boat" }, { e:"🪜", ru:"Лестница", en:"Stairs" },
+    { e:"🚪", ru:"Дверь", en:"Door" }, { e:"🧱", ru:"Стена", en:"Wall" },
+    { e:"🟫", ru:"Пол", en:"Floor" }, { e:"⬜", ru:"Потолок", en:"Ceiling" },
+    { e:"🏠", ru:"Крыша", en:"Roof" }, { e:"🏚️", ru:"Подвал", en:"Basement" },
+    { e:"🧰", ru:"Чердак", en:"Attic" }, { e:"🚗", ru:"Гараж", en:"Garage" }
+  ]},
+  { id:"time", ru:"Время", en:"Time", cards:[
+    { e:"⏰", ru:"Сейчас", en:"Now" }, { e:"⏳", ru:"Позже", en:"Later" },
+    { e:"📅", ru:"Сегодня", en:"Today" }, { e:"🌅", ru:"Завтра", en:"Tomorrow" },
+    { e:"🌄", ru:"Утро", en:"Morning" }, { e:"🌇", ru:"Вечер", en:"Evening" },
+    { e:"🌃", ru:"Ночь", en:"Night" }, { e:"⏱️", ru:"Скоро", en:"Soon" },
+    { e:"🕐", ru:"Подождать", en:"Wait" }, { e:"⚡", ru:"Быстро", en:"Fast" },
+    { e:"🐢", ru:"Медленно", en:"Slow" }, { e:"⏱️", ru:"Минута", en:"Minute" },
+    { e:"🕰️", ru:"Час", en:"Hour" }, { e:"🌞", ru:"Полдень", en:"Noon" },
+    { e:"🌚", ru:"Полночь", en:"Midnight" }, { e:"📆", ru:"Вчера", en:"Yesterday" },
+    { e:"🌅", ru:"Рассвет", en:"Dawn" }, { e:"🌇", ru:"Закат", en:"Sunset" },
+    { e:"☀️", ru:"День", en:"Day" }, { e:"🌙", ru:"Ночь", en:"Night" },
+    { e:"📅", ru:"Неделя", en:"Week" }, { e:"📅", ru:"Месяц", en:"Month" },
+    { e:"📅", ru:"Год", en:"Year" }, { e:"♾️", ru:"Всегда", en:"Always" },
+    { e:"🚫", ru:"Никогда", en:"Never" }, { e:"🔄", ru:"Иногда", en:"Sometimes" },
+    { e:"🔁", ru:"Часто", en:"Often" }, { e:"🤏", ru:"Редко", en:"Rarely" },
+    { e:"🌅", ru:"Рано", en:"Early" }, { e:"🌃", ru:"Поздно", en:"Late" },
+    { e:"⏮️", ru:"До", en:"Before" }, { e:"⏭️", ru:"После", en:"After" },
+    { e:"⏸️", ru:"Во время", en:"During" }, { e:"▶️", ru:"Начало", en:"Start" },
+    { e:"⏹️", ru:"Конец", en:"End" }, { e:"🕰️", ru:"Прошлое", en:"Past" },
+    { e:"⏰", ru:"Настоящее", en:"Present" }, { e:"🔮", ru:"Будущее", en:"Future" },
+    { e:"📅", ru:"Понедельник", en:"Monday" }, { e:"📅", ru:"Вторник", en:"Tuesday" },
+    { e:"📅", ru:"Среда", en:"Wednesday" }, { e:"📅", ru:"Четверг", en:"Thursday" },
+    { e:"📅", ru:"Пятница", en:"Friday" }, { e:"📅", ru:"Суббота", en:"Saturday" },
+    { e:"📅", ru:"Воскресенье", en:"Sunday" }, { e:"🌸", ru:"Весна", en:"Spring" },
+    { e:"☀️", ru:"Лето", en:"Summer" }, { e:"🍁", ru:"Осень", en:"Autumn" },
+    { e:"❄️", ru:"Зима", en:"Winter" }, { e:"🎉", ru:"Праздник", en:"Holiday" }
+  ]},
+  { id:"tech", ru:"Быт и техника", en:"Home & Tech", cards:[
+    { e:"📺", ru:"Телевизор", en:"TV" }, { e:"📱", ru:"Телефон", en:"Phone" },
+    { e:"💡", ru:"Свет", en:"Light" }, { e:"🔌", ru:"Зарядка", en:"Charger" },
+    { e:"💻", ru:"Ноутбук", en:"Laptop" }, { e:"🎵", ru:"Музыка", en:"Music" },
+    { e:"🎮", ru:"Игры", en:"Games" }, { e:"⏰", ru:"Часы", en:"Clock" },
+    { e:"🛋️", ru:"Диван", en:"Sofa" }, { e:"🚿", ru:"Душ", en:"Shower" },
+    { e:"📻", ru:"Радио", en:"Radio" }, { e:"💡", ru:"Лампа", en:"Lamp" },
+    { e:"🌀", ru:"Вентилятор", en:"Fan" }, { e:"❄️", ru:"Кондиционер", en:"AC" },
+    { e:"🔥", ru:"Отопление", en:"Heating" }, { e:"📞", ru:"Пульт", en:"Remote" },
+    { e:"🖥️", ru:"Компьютер", en:"Computer" }, { e:"📱", ru:"Смартфон", en:"Smartphone" },
+    { e:"📟", ru:"Планшет", en:"Tablet" }, { e:"🔗", ru:"Кабель", en:"Cable" },
+    { e:"🔋", ru:"Батарейка", en:"Battery" }, { e:"💡", ru:"Люстра", en:"Chandelier" },
+    { e:"🔌", ru:"Розетка", en:"Socket" }, { e:"🧊", ru:"Холодильник", en:"Fridge" },
+    { e:"🧊", ru:"Морозилка", en:"Freezer" }, { e:"♨️", ru:"Микроволновка", en:"Microwave" },
+    { e:"🍳", ru:"Духовка", en:"Oven" }, { e:"🍳", ru:"Плита", en:"Stove" },
+    { e:"🫖", ru:"Чайник", en:"Kettle" }, { e:"☕", ru:"Кофеварка", en:"Coffee maker" },
+    { e:"🍞", ru:"Тостер", en:"Toaster" }, { e:"🥤", ru:"Блендер", en:"Blender" },
+    { e:"🧺", ru:"Стиральная машина", en:"Washing machine" }, { e:"🧺", ru:"Сушилка", en:"Dryer" },
+    { e:"👔", ru:"Утюг", en:"Iron" }, { e:"🧹", ru:"Пылесос", en:"Vacuum cleaner" },
+    { e:"🌬️", ru:"Обогреватель", en:"Heater" }, { e:"🔥", ru:"Батарея", en:"Radiator" },
+    { e:"⌚", ru:"Наручные часы", en:"Wristwatch" }, { e:"⏰", ru:"Будильник", en:"Alarm clock" },
+    { e:"📻", ru:"Колонка", en:"Speaker" }, { e:"📷", ru:"Камера", en:"Camera" },
+    { e:"📹", ru:"Видеокамера", en:"Video camera" }, { e:"🎮", ru:"Приставка", en:"Console" },
+    { e:"🧸", ru:"Игрушка", en:"Toy" }, { e:"📖", ru:"Книга", en:"Book" },
+    { e:"📰", ru:"Газета", en:"Newspaper" }, { e:"✂️", ru:"Ножницы", en:"Scissors" },
+    { e:"🔑", ru:"Ключ", en:"Key" }, { e:"🔒", ru:"Замок", en:"Lock" }
+  ]}
+];
+categories.forEach(cat => { cat.cards.forEach((card, i) => { card.id = `std::${cat.id}::${i}`; }); });
+
+/* ============ СЛОВАРИ ИНТЕРФЕЙСА ============ */
+const ui = {
+  ru: {
+    title:"🗣️ Коммуникатор-помощник", sentenceTitle:"Составление предложения",
+    hint:"Нажимайте на карточки ниже, чтобы добавить слова сюда",
+    speak:"Озвучить", large:"Показать крупно",
+    typingTitle:"⌨️ Свободный ввод", typingPlaceholder:"Напишите здесь...", addToPhrase:"В предложение",
+    settings:"Настройки", contrast:"Контраст", contrastNormal:"Обычный", contrastHigh:"Высокий",
+    rate:"Скорость речи", voiceOnClick:"Озвучка при нажатии",
+    on:"Включено", off:"Выключено", done:"Готово", close:"Закрыть",
+    history:"История фраз", historyEmpty:"Пока ничего не сказано", clearHistory:"Очистить историю",
+    addCardTitle:"➕ Добавить карточку", addCardLabel:"Название", addCardPhoto:"Фото",
+    save:"Сохранить", cancel:"Отмена", customCategory:"Моё", addCardBtn:"Добавить",
+    editTitle:"Настройка карточки", recordMic:"🎙️ Записать с микрофона", stopRec:"⏹ Остановить запись",
+    uploadAudio:"📁 Загрузить аудиофайл", deleteVoice:"🗑️ Удалить голос",
+    deleteCard:"🗑️ Удалить карточку", deletePhoto:"🗑️ Удалить фото",
+    changePhoto:"📷 Заменить фото", emptyPhrase:"Ничего не выбрано",
+    hasVoice:"✓ Свой голос записан", deleteConfirm:"Удалить карточку?",
+    quickPhrases: ["Я хочу пить", "Я хочу есть", "Мне больно", "Позовите врача", "Я не понимаю", "Помогите мне", "Дайте воды", "Хочу в туалет"]
+  },
+  en: {
+    title:"🗣️ Communicator-Helper", sentenceTitle:"Sentence Builder",
+    hint:"Tap cards below to add words here",
+    speak:"Speak", large:"Show Large",
+    typingTitle:"⌨️ Free Typing", typingPlaceholder:"Type here...", addToPhrase:"To sentence",
+    settings:"Settings", contrast:"Contrast", contrastNormal:"Normal", contrastHigh:"High",
+    rate:"Speech rate", voiceOnClick:"Speak on card tap",
+    on:"On", off:"Off", done:"Done", close:"Close",
+    history:"Phrase history", historyEmpty:"Nothing said yet", clearHistory:"Clear history",
+    addCardTitle:"➕ Add card", addCardLabel:"Label", addCardPhoto:"Photo",
+    save:"Save", cancel:"Cancel", customCategory:"Mine", addCardBtn:"Add",
+    editTitle:"Edit card", recordMic:"🎙️ Record from mic", stopRec:"⏹ Stop recording",
+    uploadAudio:"📁 Upload audio file", deleteVoice:"🗑️ Delete voice",
+    deleteCard:"🗑️ Delete card", deletePhoto:"🗑️ Delete photo",
+    changePhoto:"📷 Replace photo", emptyPhrase:"Nothing selected",
+    hasVoice:"✓ Custom voice saved", deleteConfirm:"Delete this card?",
+    quickPhrases: ["I want to drink", "I want to eat", "I'm in pain", "Call a doctor", "I don't understand", "Help me", "Give me water", "I need the toilet"]
+  }
+};
+
+/* ============ ГРАММАТИЧЕСКИЙ ДВИЖОК ============ */
+const grammarRules = [
+  { match: ["хочу", "вода"], replace: "Я хочу воды" },
+  { match: ["хочу", "пить"], replace: "Я хочу пить" },
+  { match: ["хочу", "есть"], replace: "Я хочу есть" },
+  { match: ["хочу", "в туалет"], replace: "Я хочу в туалет" },
+  { match: ["дайте", "вода"], replace: "Дайте воды" },
+  { match: ["дайте", "таблетка"], replace: "Дайте таблетку" },
+  { match: ["дайте", "обезболивающее"], replace: "Дайте обезболивающее" },
+  { match: ["позовите", "врач"], replace: "Позовите врача" },
+  { match: ["позовите", "медсестра"], replace: "Позовите медсестру" },
+  { match: ["болит", "голова"], replace: "У меня болит голова" },
+  { match: ["болит", "живот"], replace: "У меня болит живот" },
+  { match: ["болит", "спина"], replace: "У меня болит спина" }
+];
+
+function applyGrammar(wordsArray) {
+  const lowerWords = wordsArray.map(w => w.toLowerCase());
+  for (const rule of grammarRules) {
+    if (rule.match.every(w => lowerWords.includes(w))) return rule.replace;
+  }
+  let str = wordsArray.join(' ');
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/* ============ ПРОФИЛИ ============ */
+let profiles = [];
+let currentProfileId = '';
+let currentProfile = null;
+
+function loadProfiles() {
+  try {
+    profiles = JSON.parse(localStorage.getItem('comm_profiles'));
+    if (!profiles || !Array.isArray(profiles) || profiles.length === 0) {
+      profiles = [{ id: 'p_default', name: 'Основной' }];
+    }
+  } catch(e) { profiles = [{ id: 'p_default', name: 'Основной' }]; }
+  currentProfileId = localStorage.getItem('comm_currentProfile') || profiles[0].id;
+  currentProfile = profiles.find(p => p.id === currentProfileId) || profiles[0];
+  if (!currentProfile) currentProfile = profiles[0];
+  currentProfileId = currentProfile.id;
+  localStorage.setItem('comm_currentProfile', currentProfileId);
+}
+
+function saveProfiles() {
+  localStorage.setItem('comm_profiles', JSON.stringify(profiles));
+  localStorage.setItem('comm_currentProfile', currentProfileId);
+}
+
+loadProfiles();
+
+function getSettingsKey() { return `comm_settings_${currentProfileId}`; }
+function getHistoryKey() { return `comm_history_${currentProfileId}`; }
+function getQuickPhrasesKey() { return `comm_qp_${currentProfileId}`; }
+function getDBPrefix() { return `${currentProfileId}::`; }
+
+/* ============ STATE ============ */
+let settings = { lang: 'ru', zoom: 1, contrast: false, rate: 0.9, voiceOnClick: true };
+try {
+  const s = JSON.parse(localStorage.getItem(getSettingsKey()) || '{}');
+  if (s.lang !== 'en' && s.lang !== 'ru') s.lang = 'ru';
+  settings = { ...settings, ...s };
+} catch(e) {}
+function saveSettings() { try { localStorage.setItem(getSettingsKey(), JSON.stringify(settings)); } catch(e) {} }
+
+let phrase = [];
+let currentCat = categories[0].id;
+let history = [];
+try { history = JSON.parse(localStorage.getItem(getHistoryKey()) || '[]'); } catch(e) {}
+let mediaCache = {};
+let customCards = [];
+let quickPhrases = [];
+
+function loadQuickPhrases() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(getQuickPhrasesKey()));
+    if (saved && Array.isArray(saved) && saved.length > 0) {
+      quickPhrases = saved;
+    } else {
+      quickPhrases = [...ui[settings.lang].quickPhrases];
+    }
+  } catch(e) { quickPhrases = [...ui[settings.lang].quickPhrases]; }
+}
+function saveQuickPhrases() {
+  try { localStorage.setItem(getQuickPhrasesKey(), JSON.stringify(quickPhrases)); } catch(e) {}
+}
+
+loadQuickPhrases();
+
+/* ============ INDEXEDDB ============ */
+let db;
+function openDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('communicator-db', 1);
+    req.onupgradeneeded = () => {
+      const d = req.result;
+      if (!d.objectStoreNames.contains('media')) d.createObjectStore('media');
+      if (!d.objectStoreNames.contains('customCards')) d.createObjectStore('customCards', { keyPath:'id' });
+    };
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+function dbPut(key, val) {
+  return new Promise((res, rej) => {
+    const r = db.transaction('media','readwrite').objectStore('media').put(val, getDBPrefix() + key);
+    r.onsuccess = () => res(); r.onerror = () => rej(r.error);
+  });
+}
+function dbDelete(key) {
+  return new Promise((res, rej) => {
+    const r = db.transaction('media','readwrite').objectStore('media').delete(getDBPrefix() + key);
+    r.onsuccess = () => res(); r.onerror = () => rej(r.error);
+  });
+}
+function dbGetAllMedia() {
+  return new Promise((res, rej) => {
+    const out = {};
+    const prefix = getDBPrefix();
+    const r = db.transaction('media','readonly').objectStore('media').openCursor();
+    r.onsuccess = (e) => {
+      const c = e.target.result;
+      if (c) { 
+        if (c.key.startsWith(prefix)) out[c.key.substring(prefix.length)] = c.value; 
+        c.continue(); 
+      } else res(out);
+    };
+    r.onerror = () => rej(r.error);
+  });
+}
+function dbGetAllCustom() {
+  return new Promise((res, rej) => {
+    const r = db.transaction('customCards','readonly').objectStore('customCards').getAll();
+    r.onsuccess = () => {
+      const prefix = getDBPrefix();
+      const filtered = r.result.filter(c => c.id.startsWith(prefix)).map(c => ({
+        ...c, id: c.id.substring(prefix.length)
+      }));
+      res(filtered);
+    };
+    r.onerror = () => rej(r.error);
+  });
+}
+function dbPutCustom(c) {
+  return new Promise((res, rej) => {
+    const r = db.transaction('customCards','readwrite').objectStore('customCards').put({ ...c, id: getDBPrefix() + c.id });
+    r.onsuccess = () => res(); r.onerror = () => rej(r.error);
+  });
+}
+function dbDelCustom(id) {
+  return new Promise((res, rej) => {
+    const r = db.transaction('customCards','readwrite').objectStore('customCards').delete(getDBPrefix() + id);
+    r.onsuccess = () => res(); r.onerror = () => rej(r.error);
+  });
+}
+async function refreshCache() {
+  try {
+    const all = await dbGetAllMedia();
+    mediaCache = {};
+    Object.keys(all).forEach(k => {
+      const [type, ...rest] = k.split('::');
+      const cardId = rest.join('::');
+      if (!mediaCache[cardId]) mediaCache[cardId] = {};
+      if (type === 'photo') mediaCache[cardId].photo = all[k];
+      if (type === 'voice') mediaCache[cardId].voice = all[k];
+    });
+    customCards = await dbGetAllCustom();
+  } catch(e) { console.warn("Ошибка кэша", e); }
+}
+
+/* ============ SPEECH ============ */
+let voices = [];
+if ('speechSynthesis' in window) {
+  function loadVoices() { voices = speechSynthesis.getVoices(); }
+  speechSynthesis.onvoiceschanged = loadVoices;
+  loadVoices();
+}
+function speak(text) {
+  if (!('speechSynthesis' in window) || !text) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = settings.lang === 'en' ? 'en-US' : 'ru-RU';
+    u.rate = settings.rate;
+    let prefix = settings.lang === 'en' ? 'en' : 'ru';
+    const v = voices.find(x => (x.lang || '').toLowerCase().startsWith(prefix));
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch(e) {}
+}
+function playVoice(cardId) {
+  return new Promise(async (resolve) => {
+    const rec = mediaCache[cardId] && mediaCache[cardId].voice;
+    if (!rec) { resolve(false); return; }
+    try {
+      const url = URL.createObjectURL(rec.blob);
+      const a = new Audio(url);
+      a.onended = () => { URL.revokeObjectURL(url); resolve(true); };
+      a.onerror = () => { URL.revokeObjectURL(url); resolve(false); };
+      await a.play();
+    } catch(e) { resolve(false); }
+  });
+}
+async function speakCardOrTTS(card, word) {
+  const has = mediaCache[card.id] && mediaCache[card.id].voice;
+  if (has) await playVoice(card.id);
+  else speak(word);
+}
+async function speakPhrase() {
+  if (phrase.length === 0) return;
+  const rawWords = phrase.map(p => p.word);
+  const finalText = settings.lang === 'ru' ? applyGrammar(rawWords) : rawWords.join(' ');
+  const allVoice = phrase.every(p => mediaCache[p.cardId] && mediaCache[p.cardId].voice);
+  if (allVoice) {
+    for (const p of phrase) await playVoice(p.cardId);
+  } else {
+    speak(finalText);
+  }
+  addHistory(finalText);
+}
+function addHistory(text) {
+  if (!text) return;
+  history.unshift({ text, t: Date.now(), lang: settings.lang });
+  history = history.slice(0, 300);
+  try { localStorage.setItem(getHistoryKey(), JSON.stringify(history)); } catch(e) {}
+}
+
+/* ============ RENDER ============ */
+const $ = id => document.getElementById(id);
+function t(key) { return (ui[settings.lang] && ui[settings.lang][key]) || key; }
+
+function applyUI() {
+  $('appTitle').textContent = t('title');
+  document.title = t('title');
+  document.documentElement.lang = settings.lang;
+  $('sentenceTitle').textContent = t('sentenceTitle');
+  $('phraseHint').textContent = t('hint');
+  $('speakAllLbl').textContent = t('speak');
+  $('largeLbl').textContent = t('large');
+  $('typingTitle').textContent = t('typingTitle');
+  $('typingArea').placeholder = t('typingPlaceholder');
+  $('settingsTitle').textContent = '⚙️ ' + t('settings');
+  $('contrastLabel').textContent = t('contrast');
+  $('contrastNormal').textContent = t('contrastNormal');
+  $('contrastHigh').textContent = t('contrastHigh');
+  $('rateLabel').textContent = t('rate');
+  $('voiceToggleLabel').textContent = t('voiceOnClick');
+  $('closeSettingsBtn').textContent = t('done');
+  $('historyTitle').textContent = t('history');
+  $('historyEmpty').textContent = t('historyEmpty');
+  $('clearHistoryBtn').textContent = t('clearHistory');
+  $('closeHistoryBtn').textContent = t('close');
+  $('addCardTitle').textContent = t('addCardTitle');
+  $('addCardLabelLbl').textContent = t('addCardLabel');
+  $('addCardPhotoLbl').textContent = t('addCardPhoto');
+  $('saveCardBtn').textContent = t('save');
+  $('cancelAddCardBtn').textContent = t('cancel');
+  $('largeSpeakBtn').textContent = '▶ ' + t('speak');
+  $('largeCloseBtn').textContent = '✕ ' + t('close');
+  $('currentProfileName').textContent = currentProfile.name;
+
+  document.querySelectorAll('.lang-switch button').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === settings.lang);
+  });
+  
+  updateSettingsUI();
+  renderQuickPhrases();
+}
+
+function updateSettingsUI() {
+  $('contrastNormal').classList.toggle('on', !settings.contrast);
+  $('contrastHigh').classList.toggle('on', settings.contrast);
+  $('rateSlider').value = settings.rate;
+  $('rateVal').textContent = settings.rate.toFixed(1);
+  $('voiceToggle').textContent = settings.voiceOnClick ? t('on') : t('off');
+  $('voiceToggle').classList.toggle('on', settings.voiceOnClick);
+  document.body.classList.toggle('contrast', settings.contrast);
+  $('app').style.zoom = settings.zoom;
+  $('zoomPct').textContent = Math.round(settings.zoom * 100) + '%';
+}
+
+function renderQuickPhrases() {
+  const bar = $('quickPhrasesBar');
+  bar.innerHTML = '';
+  quickPhrases.forEach(text => {
+    const btn = document.createElement('button');
+    btn.className = 'qp-btn';
+    btn.textContent = text;
+    btn.onclick = () => {
+      addToPhrase('qp::' + text, text);
+      if (settings.voiceOnClick) speak(text);
+    };
+    bar.appendChild(btn);
+  });
+}
+
+/* ============ УПРАВЛЕНИЕ БЫСТРЫМИ ФРАЗАМИ ============ */
+function renderQpModal() {
+  const list = $('qpList');
+  list.innerHTML = '';
+  if (quickPhrases.length === 0) {
+    list.innerHTML = '<div style="color:var(--muted); font-style:italic; padding:1rem; text-align:center;">Список пуст. Добавьте фразу ниже.</div>';
+  }
+  quickPhrases.forEach((text, index) => {
+    const div = document.createElement('div');
+    div.className = 'qp-list-item';
+    div.innerHTML = `<span>${escapeHtml(text)}</span>`;
+    const delBtn = document.createElement('button');
+    delBtn.innerHTML = '✕';
+    delBtn.onclick = () => {
+      quickPhrases.splice(index, 1);
+      saveQuickPhrases();
+      renderQpModal();
+      renderQuickPhrases();
+    };
+    div.appendChild(delBtn);
+    list.appendChild(div);
+  });
+}
+
+function addQuickPhrase() {
+  const text = $('newQpInput').value.trim();
+  if (!text) return;
+  quickPhrases.push(text);
+  saveQuickPhrases();
+  $('newQpInput').value = '';
+  renderQpModal();
+  renderQuickPhrases();
+}
+
+function resetQuickPhrases() {
+  if (!confirm('Вернуть стандартные быстрые фразы? Ваши добавления будут удалены.')) return;
+  quickPhrases = [...ui[settings.lang].quickPhrases];
+  saveQuickPhrases();
+  renderQpModal();
+  renderQuickPhrases();
+}
+
+/* ============ КАТЕГОРИИ И КАРТОЧКИ ============ */
+function renderCategories() {
+  const nav = $('categories');
+  nav.innerHTML = '';
+  categories.forEach(cat => {
+    const b = document.createElement('button');
+    b.className = 'catBtn' + (cat.id === currentCat ? ' active' : '');
+    b.textContent = cat[settings.lang];
+    b.onclick = () => { currentCat = cat.id; renderCategories(); renderGrid(); };
+    nav.appendChild(b);
+  });
+  const cb = document.createElement('button');
+  cb.className = 'catBtn' + (currentCat === 'custom' ? ' active' : '');
+  cb.textContent = '📷 ' + t('customCategory');
+  cb.onclick = () => { currentCat = 'custom'; renderCategories(); renderGrid(); };
+  nav.appendChild(cb);
+}
+
+function renderGrid() {
+  const grid = $('grid');
+  grid.innerHTML = '';
+  if (currentCat === 'custom') {
+    customCards.forEach(cc => {
+      grid.appendChild(makeCard({
+        id: 'custom::' + cc.id,
+        e: '📷',
+        word: cc.label,
+        photo: mediaCache['custom::' + cc.id]?.photo,
+        isCustom: true
+      }));
+    });
+    const addBtn = document.createElement('div');
+    addBtn.className = 'card addCard';
+    addBtn.innerHTML = '<span class="emoji">＋</span><span class="label">' + t('addCardBtn') + '</span>';
+    addBtn.onclick = openAddCardModal;
+    grid.appendChild(addBtn);
+    return;
+  }
+  const cat = categories.find(c => c.id === currentCat);
+  if (!cat) return;
+  cat.cards.forEach(card => {
+    grid.appendChild(makeCard({
+      id: card.id,
+      e: card.e,
+      word: card[settings.lang],
+      photo: mediaCache[card.id]?.photo,
+      isCustom: false
+    }));
+  });
+}
+
+function makeCard({ id, e, word, photo, isCustom }) {
+  const el = document.createElement('div');
+  el.className = 'card';
+  const hasVoice = mediaCache[id] && mediaCache[id].voice;
+  const mediaHtml = photo ? `<img class="photo" src="${photo}" alt="">` : `<span class="emoji">${e}</span>`;
+  el.innerHTML = `${mediaHtml}<span class="label">${word}</span>` + (hasVoice ? '<span class="badge">🎙️</span>' : '');
+  
+  let pressTimer;
+  const startPress = (e) => {
+    if (e.type === 'touchstart') e.preventDefault();
+    pressTimer = setTimeout(() => { openEditModal(id, word, isCustom); }, 800);
+  };
+  const cancelPress = () => clearTimeout(pressTimer);
+
+  el.onmousedown = startPress;
+  el.onmouseup = cancelPress;
+  el.onmouseleave = cancelPress;
+  el.ontouchstart = startPress;
+  el.ontouchend = cancelPress;
+  el.ontouchmove = cancelPress;
+
+  el.onclick = (ev) => {
+    clearTimeout(pressTimer);
+    if (settings.voiceOnClick) speakCardOrTTS({ id }, word);
+    addToPhrase(id, word);
+  };
+  return el;
+}
+
+function addToPhrase(cardId, word) {
+  phrase.push({ cardId, word });
+  const hint = $('phraseHint');
+  if (hint) hint.style.display = 'none';
+  const chip = document.createElement('button');
+  chip.className = 'chip';
+  chip.textContent = word;
+  chip.onclick = () => {
+    const i = phrase.findIndex(p => p.cardId === cardId && p.word === word);
+    if (i >= 0) phrase.splice(i, 1);
+    chip.remove();
+    if (phrase.length === 0) {
+        const h = $('phraseHint');
+        if (h) h.style.display = '';
+    }
+  };
+  $('phraseChips').appendChild(chip);
+}
+
+function clearPhrase() {
+  phrase = [];
+  const chips = $('phraseChips');
+  chips.innerHTML = '<span id="phraseHint"></span>';
+  $('phraseHint').textContent = t('hint');
+  $('phraseHint').style.display = '';
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+}
+
+function renderHistory() {
+  const list = $('historyList');
+  list.innerHTML = '';
+  if (history.length === 0) {
+    $('historyEmpty').style.display = 'block';
+    list.style.display = 'none';
+    return;
+  }
+  $('historyEmpty').style.display = 'none';
+  list.style.display = 'block';
+  history.forEach(h => {
+    const li = document.createElement('li');
+    const d = new Date(h.t);
+    const time = d.toLocaleString();
+    li.innerHTML = `<span class="hist-text">${escapeHtml(h.text)}</span><span class="hist-time">${escapeHtml(time)}</span>`;
+    li.querySelector('.hist-text').onclick = () => {
+      $('typingArea').value = h.text;
+      $('typingOverlay').classList.remove('hidden');
+    };
+    list.appendChild(li);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+let pendingPhoto = null;
+function openAddCardModal() {
+  pendingPhoto = null;
+  $('addCardPhoto').value = '';
+  $('addCardLabel').value = '';
+  $('addCardModal').classList.remove('hidden');
+}
+
+async function saveCustomCard() {
+  const label = $('addCardLabel').value.trim();
+  if (!label) { $('addCardLabel').focus(); return; }
+  if (!pendingPhoto) { alert(t('addCardPhoto')); return; }
+  const id = 'c' + Date.now();
+  await dbPut('photo::custom::' + id, pendingPhoto);
+  await dbPutCustom({ id, label });
+  await refreshCache();
+  $('addCardModal').classList.add('hidden');
+  currentCat = 'custom';
+  renderCategories();
+  renderGrid();
+}
+
+let mediaRecorder = null;
+let recChunks = [];
+let recStream = null;
+
+function openEditModal(cardId, word, isCustom) {
+  const modal = $('editCardModal');
+  const body = $('editCardBody');
+  $('editCardTitle').textContent = t('editTitle') + ': ' + word;
+  const hasVoice = mediaCache[cardId] && mediaCache[cardId].voice;
+  const hasPhoto = mediaCache[cardId] && mediaCache[cardId].photo;
+
+  body.innerHTML = `
+    <div class="record-note">${t('micNote')}</div>
+    <button class="record-btn" id="recBtn">${hasVoice ? t('hasVoice') + ' · ' + t('recordMic') : t('recordMic')}</button>
+    <button class="record-btn" id="uploadAudioBtn">${t('uploadAudio')}</button>
+    <input type="file" id="audioFile" accept="audio/*" style="display:none">
+    ${hasVoice ? `<button class="record-btn" id="delVoiceBtn" style="color:#c0392b">${t('deleteVoice')}</button>` : ''}
+    ${hasPhoto ? `<button class="record-btn" id="delPhotoBtn" style="color:#c0392b">${t('deletePhoto')}</button>` : ''}
+    <button class="record-btn" id="changePhotoBtn">${t('changePhoto')}</button>
+    <input type="file" id="photoFile" accept="image/*" style="display:none">
+    ${isCustom ? `<button class="record-btn" id="delCardBtn" style="color:#c0392b">${t('deleteCard')}</button>` : ''}
+  `;
+  modal.classList.remove('hidden');
+
+  const recBtn = $('recBtn');
+  recBtn.onclick = async () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      return;
+    }
+    try {
+      recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recChunks = [];
+      mediaRecorder = new MediaRecorder(recStream);
+      mediaRecorder.ondataavailable = e => recChunks.push(e.data);
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(recChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+        await dbPut('voice::' + cardId, { blob, mime: mediaRecorder.mimeType });
+        if (recStream) recStream.getTracks().forEach(tr => tr.stop());
+        mediaRecorder = null; recStream = null;
+        await refreshCache();
+        $('editCardModal').classList.add('hidden');
+        renderGrid();
+      };
+      mediaRecorder.start();
+      recBtn.classList.add('recording');
+      recBtn.textContent = t('stopRec');
+    } catch (err) { alert(t('micError')); }
+  };
+
+  $('uploadAudioBtn').onclick = () => $('audioFile').click();
+  $('audioFile').onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    await dbPut('voice::' + cardId, { blob: f, mime: f.type });
+    await refreshCache();
+    $('editCardModal').classList.add('hidden');
+    renderGrid();
+  };
+
+  if (hasVoice) {
+    $('delVoiceBtn').onclick = async () => {
+      await dbDelete('voice::' + cardId);
+      await refreshCache();
+      $('editCardModal').classList.add('hidden');
+      renderGrid();
+    };
+  }
+
+  if (hasPhoto) {
+    $('delPhotoBtn').onclick = async () => {
+      await dbDelete('photo::' + cardId);
+      await refreshCache();
+      $('editCardModal').classList.add('hidden');
+      renderGrid();
+    };
+  }
+
+  $('changePhotoBtn').onclick = () => $('photoFile').click();
+  $('photoFile').onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const dataUrl = await compressImage(f);
+      await dbPut('photo::' + cardId, dataUrl);
+      await refreshCache();
+      $('editCardModal').classList.add('hidden');
+      renderGrid();
+    } catch(err) { alert('Image error'); }
+  };
+
+  if (isCustom) {
+    $('delCardBtn').onclick = async () => {
+      if (!confirm(t('deleteConfirm'))) return;
+      const realId = cardId.replace('custom::', '');
+      await dbDelCustom(realId);
+      await dbDelete('voice::' + cardId);
+      await dbDelete('photo::' + cardId);
+      await refreshCache();
+      $('editCardModal').classList.add('hidden');
+      renderGrid();
+    };
+  }
+}
+
+function compressImage(file, maxSize = 400, quality = 0.82) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height) { if (width > maxSize) { height *= maxSize / width; width = maxSize; } }
+        else { if (height > maxSize) { width *= maxSize / height; height = maxSize; } }
+        const c = document.createElement('canvas');
+        c.width = width; c.height = height;
+        c.getContext('2d').drawImage(img, 0, 0, width, height);
+        res(c.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = rej;
+      img.src = e.target.result;
+    };
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function openLarge() {
+  let rawWords = phrase.map(p => p.word);
+  let finalText = settings.lang === 'ru' ? applyGrammar(rawWords) : rawWords.join(' ');
+  $('largePhrase').textContent = phrase.length ? finalText : t('emptyPhrase');
+  $('largeOverlay').classList.remove('hidden');
+  if (phrase.length) speakPhrase();
+}
+function closeLarge() { $('largeOverlay').classList.add('hidden'); }
+
+/* ============ ПРОФИЛИ UI ============ */
+function renderProfiles() {
+  const list = $('profileList');
+  list.innerHTML = '';
+  profiles.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'profile-item' + (p.id === currentProfileId ? ' active' : '');
+    div.innerHTML = `<span class="p-name">${escapeHtml(p.name)}</span>`;
+    if (profiles.length > 1) {
+      const del = document.createElement('button');
+      del.className = 'p-del';
+      del.innerHTML = '✕';
+      del.onclick = (e) => {
+        e.stopPropagation();
+        if (confirm(`Удалить профиль "${p.name}"? Все данные (история, фото, голоса, быстрые фразы) будут стёрты.`)) {
+          profiles = profiles.filter(x => x.id !== p.id);
+          if (currentProfileId === p.id) {
+            currentProfileId = profiles[0].id;
+            currentProfile = profiles[0];
+            saveProfiles();
+            reloadAppState();
+          } else {
+            saveProfiles();
+          }
+          renderProfiles();
+        }
+      };
+      div.appendChild(del);
+    }
+    div.onclick = () => {
+      if (p.id === currentProfileId) return;
+      currentProfileId = p.id;
+      currentProfile = p;
+      saveProfiles();
+      reloadAppState();
+      renderProfiles();
+    };
+    list.appendChild(div);
+  });
+}
+
+function createProfile() {
+  const name = $('newProfileName').value.trim();
+  if (!name) return;
+  const id = 'p_' + Date.now();
+  profiles.push({ id, name });
+  currentProfileId = id;
+  currentProfile = profiles.find(p => p.id === id);
+  saveProfiles();
+  $('newProfileName').value = '';
+  reloadAppState();
+  renderProfiles();
+}
+
+function reloadAppState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(getSettingsKey()) || '{}');
+    if (s.lang !== 'en' && s.lang !== 'ru') s.lang = 'ru';
+    settings = { lang:'ru', zoom:1, contrast:false, rate:0.9, voiceOnClick:true, ...s };
+  } catch(e) {}
+  try { history = JSON.parse(localStorage.getItem(getHistoryKey()) || '[]'); } catch(e) { history = []; }
+  
+  loadQuickPhrases();
+  clearPhrase();
+  refreshCache().then(() => {
+    applyUI();
+    renderCategories();
+    renderGrid();
+  });
+}
+
+/* ============ EVENT BINDING ============ */
+function bindEvents() {
+  document.querySelectorAll('.lang-switch button').forEach(b => {
+    b.onclick = () => {
+      settings.lang = b.dataset.lang;
+      saveSettings();
+      applyUI();
+      renderCategories();
+      renderGrid();
+      clearPhrase();
+      // Быстрые фразы остаются пользовательскими, но если их не было, подтянутся на новом языке
+    };
+  });
+
+  $('profileBtn').onclick = () => { renderProfiles(); $('profileModal').classList.remove('hidden'); };
+  $('closeProfileBtn').onclick = () => $('profileModal').classList.add('hidden');
+  $('createProfileBtn').onclick = createProfile;
+  $('newProfileName').addEventListener('keydown', e => { if (e.key === 'Enter') createProfile(); });
+
+  $('editQpBtn').onclick = () => { renderQpModal(); $('qpModal').classList.remove('hidden'); };
+  $('closeQpBtn').onclick = () => $('qpModal').classList.add('hidden');
+  $('addQpBtn').onclick = addQuickPhrase;
+  $('newQpInput').addEventListener('keydown', e => { if (e.key === 'Enter') addQuickPhrase(); });
+  $('resetQpBtn').onclick = resetQuickPhrases;
+
+  $('typingBtn').onclick = () => { $('typingOverlay').classList.remove('hidden'); $('typingArea').focus(); };
+  $('closeTypingBtn').onclick = () => { $('typingOverlay').classList.add('hidden'); $('typingArea').value = ''; };
+  $('speakTypedBtn').onclick = () => {
+    const text = $('typingArea').value.trim();
+    if (text) { speak(text); addHistory(text); }
+  };
+  $('addTypedBtn').onclick = () => {
+    const text = $('typingArea').value.trim();
+    if (text) {
+      addToPhrase('typed::' + Date.now(), text);
+      $('typingArea').value = '';
+      $('typingOverlay').classList.add('hidden');
+    }
+  };
+
+  $('settingsBtn').onclick = () => $('settingsModal').classList.remove('hidden');
+  $('closeSettingsBtn').onclick = () => $('settingsModal').classList.add('hidden');
+  $('settingsModal').onclick = e => { if (e.target === $('settingsModal')) $('settingsModal').classList.add('hidden'); };
+
+  $('contrastNormal').onclick = () => { settings.contrast = false; updateSettingsUI(); saveSettings(); };
+  $('contrastHigh').onclick = () => { settings.contrast = true; updateSettingsUI(); saveSettings(); };
+  $('rateSlider').oninput = e => { settings.rate = parseFloat(e.target.value); $('rateVal').textContent = settings.rate.toFixed(1); saveSettings(); };
+  $('voiceToggle').onclick = () => { settings.voiceOnClick = !settings.voiceOnClick; updateSettingsUI(); saveSettings(); };
+
+  $('clearBtn').onclick = clearPhrase;
+  $('speakAllBtn').onclick = speakPhrase;
+  $('largeBtn').onclick = openLarge;
+  $('largeSpeakBtn').onclick = speakPhrase;
+  $('largeCloseBtn').onclick = closeLarge;
+  $('largeOverlay').onclick = e => { if (e.target === $('largeOverlay')) closeLarge(); };
+
+  $('historyBtn').onclick = () => { renderHistory(); $('historyModal').classList.remove('hidden'); };
+  $('zoomIn').onclick = () => { settings.zoom = Math.min(3, settings.zoom + 0.15); updateSettingsUI(); saveSettings(); };
+  $('zoomOut').onclick = () => { settings.zoom = Math.max(0.75, settings.zoom - 0.15); updateSettingsUI(); saveSettings(); };
+  $('zoomReset').onclick = () => { settings.zoom = 1; updateSettingsUI(); saveSettings(); };
+
+  $('addCardPhoto').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { pendingPhoto = await compressImage(f); } catch(err) { alert('Image error'); }
+  };
+  $('saveCardBtn').onclick = saveCustomCard;
+  $('cancelAddCardBtn').onclick = () => $('addCardModal').classList.add('hidden');
+
+  $('closeHistoryBtn').onclick = () => $('historyModal').classList.add('hidden');
+  $('clearHistoryBtn').onclick = () => {
+    if (!confirm(t('clearHistory') + '?')) return;
+    history = [];
+    try { localStorage.removeItem(getHistoryKey()); } catch(e) {}
+    renderHistory();
+  };
+  $('closeEditBtn').onclick = () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+    $('editCardModal').classList.add('hidden');
+  };
+}
+
+/* ============ BOOT ============ */
+(async function init() {
+  try {
+    await openDB();
+    await refreshCache();
+  } catch (e) { console.warn("БД недоступна", e); }
+  applyUI();
+  bindEvents();
+  renderCategories();
+  renderGrid();
+})();
+</script>
+</body>
+</html>
