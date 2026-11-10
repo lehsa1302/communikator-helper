@@ -1,1 +1,0 @@
-# communikator-helper
